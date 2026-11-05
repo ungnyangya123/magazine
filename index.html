@@ -1,0 +1,935 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>철수세미 온라인 잡지</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Nanum+Gothic:wght@400;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: 책상(desk) 위에 펼쳐진 잡지. PC = 두 쪽 펼침, 모바일 = 한 쪽. 스크롤 모드 = 한 줄 기사.
+   잡지마다 고유 색(--acc)을 갖고, 종이·잉크 색은 공통. 종이 질감의 단일 밝은 테마로 의도적으로 고정. */
+:root{
+  color-scheme: light;
+  --desk:#e6e1d6; --paper:#fffdf8; --ink:#1f2a30; --muted:#5f6a70; --line:#e2dbcd; --shade:#d3ccbe;
+  --acc:#1f7a6e; --acc2:#ff7a59; --tint:#eaf4f1;
+  --f-disp:'Jua','Nanum Gothic','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  --f-body:'Nanum Gothic','Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  --bar-h:56px;
+}
+.m-doppler{--acc:#1f7a6e; --acc2:#ff7a59; --tint:#e6f3ef; --acc-ink:#0f3d38}
+.m-gd{--acc:#c2461d; --acc2:#1d2b3a; --tint:#f7ece0; --acc-ink:#5a2310}
+[hidden]{display:none!important}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0}img{max-width:100%}
+body{background:var(--desk); color:var(--ink); font-family:var(--f-body); font-size:16px; line-height:1.75; -webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--acc2);outline-offset:2px}
+b{font-weight:700;background:linear-gradient(transparent 58%, color-mix(in srgb,var(--acc2) 35%,transparent) 58%);padding:0 2px}
+
+/* ---------- top bar ---------- */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;height:var(--bar-h);display:flex;align-items:center;gap:12px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:var(--paper);border-bottom:1px solid var(--line)}
+.brand{font-family:var(--f-disp);font-size:20px;letter-spacing:.02em;background:none;border:0;padding:0;white-space:nowrap}
+.brand span{color:var(--acc)}
+.bar .now{flex:1;min-width:0;font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--desk)}
+.seg button{border:0;background:none;padding:4px 12px;border-radius:999px;font-size:14px;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--paper);box-shadow:0 1px 3px rgba(40,30,10,.15);color:var(--acc)}
+.tocbtn{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:5px 14px;font-size:14px;white-space:nowrap}
+@media (max-width:560px){body.reading .brand{display:none}body.reading .bar .now{display:block;flex:1;font-size:13px}.bar{gap:8px}.bar .now{display:none}.brand{font-size:18px;flex:1;text-align:left}.brand span{display:none}.seg button{padding:4px 9px;font-size:13px}.tocbtn{padding:5px 11px;font-size:13px}}
+
+/* ---------- home ---------- */
+#home{max-width:1080px;margin:0 auto;padding-block:40px 80px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.home-h{font-family:var(--f-disp);font-size:clamp(30px,5vw,46px);line-height:1.2;margin:0 0 6px;text-wrap:balance}
+.home-sub{color:var(--muted);margin:0 0 32px}
+.shelf{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:28px}
+.mag-card{background:var(--paper);border-radius:6px;overflow:hidden;box-shadow:0 1px 0 var(--shade),0 18px 40px -22px rgba(60,40,10,.45);display:flex;flex-direction:column;text-align:left;border:0;padding:0;transition:transform .2s}
+.mag-card:hover{transform:translateY(-4px) rotate(-.4deg)}
+.mag-card img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover}
+.mag-card .meta{padding:16px 20px 20px;display:grid;gap:4px}
+.mag-card .kicker{font-size:13px;letter-spacing:.12em;color:var(--acc)}
+.mag-card .t{font-family:var(--f-disp);font-size:24px;line-height:1.3}
+.mag-card .d{color:var(--muted);font-size:15px}
+.draft{margin-top:44px;background:var(--paper);border-radius:6px;padding-block:24px;padding-inline:clamp(16px,3vw,32px);border:1px dashed var(--shade)}
+.draft h2{font-family:var(--f-disp);font-weight:normal;font-size:24px;margin:0 0 4px}
+.draft .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px 32px;margin-top:16px}
+.draft h3{font-family:var(--f-disp);font-weight:normal;font-size:18px;margin:0 0 6px;color:var(--acc)}
+.draft ul{margin:0;padding-left:18px}
+.draft li{margin:2px 0}
+.draft .tag{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.draft a{color:inherit}
+
+/* ---------- reader ---------- */
+#reader{position:relative}
+.stage{position:relative;height:calc(100dvh - var(--bar-h) - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;overflow:hidden;
+  padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
+.spread{position:relative;display:flex;perspective:2200px}
+.slot{position:relative;width:var(--pw);height:var(--ph)}
+.two .slot.l{box-shadow:-10px 14px 30px -18px rgba(50,35,10,.5)}
+.two .slot.r{box-shadow:10px 14px 30px -18px rgba(50,35,10,.5)}
+.one .slot.l{display:none}
+.one .slot.r{box-shadow:0 14px 30px -18px rgba(50,35,10,.5)}
+.slot.empty{box-shadow:none!important}
+.page{position:absolute;inset:0;background:var(--paper);display:flex;flex-direction:column;overflow:hidden;backface-visibility:hidden}
+.two .slot.l .page,.two .leaf.l .page{background:linear-gradient(to left,rgba(60,40,10,.09),transparent 7%),var(--paper)}
+.two .slot.r .page,.two .leaf.r .page{background:linear-gradient(to right,rgba(60,40,10,.09),transparent 7%),var(--paper)}
+.pg-head{display:flex;justify-content:space-between;gap:8px;padding:14px 26px 0;font-size:12px;letter-spacing:.08em;color:var(--muted);white-space:nowrap;overflow:hidden}
+.pg-head span:last-child{overflow:hidden;text-overflow:ellipsis}
+.pg-body{flex:1;min-height:0;padding:10px 26px 0;overflow:hidden;display:flex;flex-direction:column;gap:12px}
+.pg-body.tall{overflow-y:auto}
+.pg-foot{padding:6px 26px 12px;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.slot.l .pg-foot{text-align:left}.slot.r .pg-foot,.leaf .pg-foot{text-align:right}
+.page.cover .pg-head,.page.cover .pg-foot{display:none}
+.page.cover .pg-body{padding:0}
+.page.cover{background:var(--tint)!important}.page.cover .pg-body{overflow-y:auto}.cover-img{width:100%;aspect-ratio:16/10;object-fit:cover;display:block}
+.cover-txt{flex:1;display:flex;flex-direction:column;gap:10px;padding:28px 28px 24px}
+.cover-k{font-size:13px;letter-spacing:.14em;color:var(--acc)}
+.cover-t{font-family:var(--f-disp);font-size:clamp(30px,4.2vw,44px);line-height:1.2;color:var(--acc-ink);text-wrap:balance}
+.cover-s{font-family:var(--f-disp);font-size:22px;color:var(--acc-ink)}
+.cover-h{font-size:13px;letter-spacing:.12em;color:var(--acc);margin-top:8px}
+.cover-l{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.cover-l li{border-top:1px solid color-mix(in srgb,var(--acc) 25%,transparent);padding-top:8px;font-size:16px}
+.cover-i{margin-top:auto;font-family:var(--f-mono);font-size:12px;color:var(--muted);border-top:1px solid color-mix(in srgb,var(--acc) 30%,transparent);padding-top:10px}
+.leaf{position:absolute;top:0;width:var(--pw);height:var(--ph);transform-style:preserve-3d;z-index:5;pointer-events:none}
+.leaf .page{box-shadow:0 0 40px rgba(40,25,5,.25)}
+.nav{display:flex;align-items:center;gap:10px;font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.nav input{width:min(320px,48vw);accent-color:var(--acc)}
+.turn{position:absolute;top:50%;transform:translateY(-50%);z-index:8;width:44px;height:64px;border:0;border-radius:10px;background:color-mix(in srgb,var(--paper) 80%,transparent);font-size:26px;color:var(--acc);box-shadow:0 2px 8px rgba(40,30,10,.12)}
+.turn.prev{left:max(10px,env(safe-area-inset-left,0px))}.turn.next{right:max(10px,env(safe-area-inset-right,0px))}
+.turn:disabled{opacity:.25;cursor:default}
+.one .turn{top:auto;bottom:4px;transform:none;height:40px}
+
+/* scroll mode */
+#scroll{padding-block:0 80px}
+.scroll-hero{display:block;width:100%;max-width:1100px;margin:0 auto;aspect-ratio:16/10;object-fit:cover}
+.article{max-width:720px;margin:0 auto;padding-block:28px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px;background:var(--paper)}
+.scroll-wrap{background:var(--paper)}
+.article h2{scroll-margin-top:calc(var(--bar-h) + 16px)}
+
+/* ---------- content blocks ---------- */
+.blk-title{font-family:var(--f-disp);font-size:30px;line-height:1.25;margin:4px 0 0;color:var(--acc-ink);text-wrap:balance}
+.blk-sub{margin:0;color:var(--muted)}
+.byline{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:8px;margin:0}
+h2.sec{font-family:var(--f-disp);font-weight:normal;font-size:23px;line-height:1.35;margin:6px 0 0;color:var(--acc-ink);text-wrap:balance}
+h2.sec .no{display:block;font-family:var(--f-mono);font-size:12px;letter-spacing:.12em;color:var(--acc)}
+.pg-body p,.article p{margin:0}
+.lede{font-size:17px}
+ul.pts{margin:0;padding-left:20px;display:grid;gap:4px}
+.box{background:var(--tint);border-radius:8px;padding:2px 14px}
+.box summary{cursor:pointer;padding:8px 0;font-size:15px;color:var(--acc-ink)}
+.box[open]{padding-bottom:12px}
+.box p+p{margin-top:6px}
+.formula{font-family:var(--f-mono);font-size:14px;background:var(--paper);border-radius:6px;padding:8px 10px;overflow-x:auto}
+figure{margin:0}
+figure img{display:block;width:100%;border-radius:6px;max-height:300px;object-fit:cover}
+figcaption{font-size:13px;color:var(--muted);margin-top:6px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{font-weight:normal;color:var(--muted);font-size:13px}
+.note{font-size:13px;color:var(--muted)}
+.svgfig svg{width:100%;height:auto;display:block}
+
+/* ---------- widgets ---------- */
+.w{border:1.5px solid color-mix(in srgb,var(--acc) 45%,var(--line));border-radius:10px;padding:12px;background:var(--paper);display:flex;flex-direction:column;gap:10px}
+.w-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.w-h .k{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;color:#fff;background:var(--acc);padding:2px 8px;border-radius:4px}
+.w-h .t{font-family:var(--f-disp);font-size:18px}
+.w canvas{display:block;width:100%;border-radius:6px;background:var(--tint);touch-action:none}
+.row{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.row label{font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.row input[type=range]{flex:1;min-width:120px;accent-color:var(--acc)}
+.btn{border:1px solid color-mix(in srgb,var(--acc) 50%,var(--line));background:var(--paper);border-radius:8px;padding:4px 12px;font-size:14px}
+.btn.on,.btn.primary{background:var(--acc);color:#fff;border-color:var(--acc)}
+.stat{font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums}
+.big{font-family:var(--f-disp);font-size:22px;color:var(--acc)}
+.endcard{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-top:1px solid var(--line);padding-top:14px;margin-top:6px}
+.msg{font-size:14px;min-height:3.2em;color:var(--acc-ink)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pad{display:grid;grid-template-columns:repeat(3,40px);grid-template-rows:repeat(3,34px);gap:4px}
+.pad button{border:1px solid var(--line);background:var(--tint);border-radius:6px;font-size:16px}
+.reclist{display:grid;gap:6px}
+.reclist .r{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.reclist audio{height:32px;flex:1;min-width:180px}
+
+/* ---------- toc drawer ---------- */
+.toc{position:fixed;z-index:30;top:0;right:0;bottom:0;width:min(360px,92vw);background:var(--paper);box-shadow:-10px 0 40px rgba(40,30,10,.25);transform:translateX(105%);transition:transform .25s;display:flex;flex-direction:column;
+  padding-top:calc(env(safe-area-inset-top,0px) + 16px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 16px);padding-right:max(16px,env(safe-area-inset-right,0px));padding-left:20px}
+.toc.open{transform:none}
+.toc h2{font-family:var(--f-disp);font-weight:normal;font-size:22px;margin:0}
+.toc .x{position:absolute;right:max(12px,env(safe-area-inset-right,0px));top:calc(env(safe-area-inset-top,0px) + 12px);border:0;background:none;font-size:24px}
+.toc nav{overflow-y:auto;margin-top:12px;display:grid;gap:18px}
+.toc .mg{display:grid;gap:2px}
+.toc .mg-t{font-family:var(--f-disp);font-size:17px;color:var(--acc);border:0;background:none;text-align:left;padding:4px 0}
+.toc .it{display:flex;gap:10px;align-items:baseline;border:0;background:none;text-align:left;padding:5px 0;font-size:15px;border-bottom:1px dotted var(--line)}
+.toc .it span:first-child{flex:1}
+.toc .it .pn{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.toc .it.w-it{font-size:13px;color:var(--muted);padding-left:12px}
+.scrim{position:fixed;inset:0;z-index:25;background:rgba(30,25,15,.3);opacity:0;pointer-events:none;transition:opacity .25s}
+.scrim.on{opacity:1;pointer-events:auto}
+.measure{position:absolute;left:-10000px;top:0;visibility:hidden}
+@media (prefers-reduced-motion:reduce){.mag-card,.toc,.scrim{transition:none}}
+</style>
+</head>
+<body>
+
+
+<header class="bar">
+  <button class="brand" id="toHome" aria-label="서가로">철수세미 <span>온라인 잡지</span></button>
+  <div class="now" id="nowTitle"></div>
+  <button class="tocbtn" id="homeBtn" hidden>← 서가</button><button class="tocbtn" id="tocBtn" hidden>목차</button>
+  <div class="seg" id="modeSeg" hidden role="group" aria-label="읽기 방식">
+    <button id="mScroll" aria-pressed="true">스크롤</button><button id="mBook" aria-pressed="false">책 넘기기</button>
+  </div>
+</header>
+
+<main id="home">
+  <h1 class="home-h">이번 호, 두 개의 심화 탐구</h1>
+  <p class="home-sub">철수세미 동아리의 탐구를 초등학생·중학생도 읽을 수 있게 풀어 쓴 온라인 잡지예요. 표지를 누르면 열려요.</p>
+  <div class="shelf">
+    <button class="mag-card m-doppler" data-open="doppler">
+      <img src="assets/cover-doppler.jpg" alt="소리와 술래잡기하는 법 표지">
+      <div class="meta"><span class="kicker">지구과학</span><span class="t">소리와 술래잡기하는 법</span><span class="d">도망치면 소리는 다르게 들린다. 주파수 분석으로 관찰한 도플러 효과</span></div>
+    </button>
+    <button class="mag-card m-gd" data-open="gd">
+      <img src="assets/cover-gd.jpg" alt="눈을 감고 산을 내려가는 법 표지">
+      <div class="meta"><span class="kicker">데이터 과학</span><span class="t">눈을 감고 산을 내려가는 법</span><span class="d">경사를 따라 한 걸음씩. 경사 하강법으로 찾는 최적의 회귀 직선</span></div>
+    </button>
+  </div>
+
+
+</main>
+
+<main id="reader" hidden>
+  <div id="book" class="stage">
+    <button class="turn prev" id="prev" aria-label="이전 쪽">‹</button>
+    <div class="spread" id="spread"><div class="slot l" id="slotL"></div><div class="slot r" id="slotR"></div></div>
+    <button class="turn next" id="next" aria-label="다음 쪽">›</button>
+    <div class="nav"><input type="range" id="pageRange" min="0" max="1" value="0" aria-label="쪽 이동"><span id="pageLbl"></span></div>
+  </div>
+  <div id="scroll" hidden><div class="scroll-wrap"><img class="scroll-hero" id="scrollHero" alt=""><div class="article" id="article"></div></div></div>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="toc" id="toc" aria-label="목차"><button class="x" id="tocX" aria-label="닫기">×</button><h2>목차</h2><nav id="tocNav"></nav></aside>
+<div class="measure" id="measure"></div>
+
+<!-- ======================= 도플러 ======================= -->
+<template id="tpl-doppler">
+<p class="blk-title">소리와 술래잡기하는 법</p>
+<p class="blk-sub">도망치면, 소리는 다르게 들린다. 주파수 분석으로 관찰한 도플러 효과</p>
+<p class="byline">철수세미 · 지구과학 · 공동연구 (이름 추후 표기)</p>
+
+<h2 class="sec" data-toc><span class="no">01</span>술래잡기, 다들 해 봤죠?</h2>
+<p class="lede">술래가 쫓아오면 우리는 도망가요. 가만히 서 있으면 금방 잡히고, 도망치면 잡히기까지 시간이 더 걸려요.</p>
+<p>그런데 만약 내가 <b>술래와 똑같은 속력으로</b> 도망친다면? 술래는 절대 나를 따라잡을 수 없어요. 직접 해 볼까요?</p>
+<div class="w" data-w="tag" data-name="술래잡기 게임"></div>
+<p>너무 당연한 이야기죠? 그런데 이 당연한 이야기가 <b>소리</b>에도 그대로 적용돼요.</p>
+
+<h2 class="sec" data-toc><span class="no">02</span>소리는 물결처럼 퍼지는 술래예요</h2>
+<p>스피커에서 소리가 나면, 스피커가 공기를 앞뒤로 떨게 만들어요. 이 떨림은 연못에 돌을 던졌을 때 생기는 물결처럼 사방으로 퍼져요. 물결의 마루 하나하나를 <b>파면</b>이라고 불러요.</p>
+<p>소리가 1초에 몇 번 떨리는지를 <b>진동수</b>라고 하고, 단위는 Hz(헤르츠)예요. 1초에 800번 떨리면 800 Hz예요. 진동수가 크면 높은 소리, 작으면 낮은 소리로 들려요.</p>
+<div class="w" data-w="tones" data-name="소리 높낮이 듣기"></div>
+<p>소리는 공기 중에서 1초에 약 346 m를 달려요. 우리 실험실 온도인 24.5 ℃ 기준이에요. 소리는 따뜻할수록 조금 더 빨라져요.</p>
+
+<h2 class="sec" data-toc><span class="no">03</span>소리에게서 도망치면?</h2>
+<p>800 Hz 소리를 <b>술래 800명</b>이라고 생각해 봐요. 1초 동안 800명이 차례차례 출발해서, 1초에 346 m씩 나를 향해 달려와요. 술래에게 한 번 잡힐 때마다 내 귀는 파면을 하나 느껴요.</p>
+<ul class="pts">
+<li><b>가만히 서 있으면</b> 1초에 800명에게 잡혀요. 그래서 800 Hz로 들려요.</li>
+<li><b>1초에 1 m씩 도망치면</b> 잡히는 횟수가 약 797.7번으로 줄어요. 아주 조금 낮은 소리가 돼요.</li>
+<li><b>1초에 346 m로 도망치면</b> 아무에게도 안 잡혀요. 소리가 들리지 않아요.</li>
+</ul>
+<p>반대로 술래 쪽으로 달려가면 더 자주 잡히니까 높은 소리로 들려요. 구급차가 다가올 때 "삐뽀"가 높다가 지나가면 낮아지는 것도 같은 이유예요.</p>
+<div class="w" data-w="sim" data-name="소리 술래잡기 시뮬레이터"></div>
+<p>이렇게 소리를 내는 쪽과 듣는 쪽이 서로 움직일 때 들리는 진동수가 달라지는 현상을 <b>도플러 효과</b>라고 해요. 오스트리아의 과학자 크리스티안 도플러의 이름을 딴 거예요.</p>
+<details class="box"><summary>더 알고 싶은 친구들을 위해 · 도플러 효과 공식</summary>
+<p>소리를 내는 쪽은 가만히 있고, 듣는 쪽이 멀어질 때:</p>
+<p class="formula">들리는 진동수 = 원래 진동수 × (소리 속력 − 내 속력) ÷ 소리 속력<br>800 × (346.2 − 1) ÷ 346.2 ≈ 797.7 Hz</p>
+<p>1초 동안 나를 잡을 수 있는 술래는 (346.2 − 1) m 안에 있던 술래뿐이라는 뜻이에요. 소리 속력은 온도 T(℃)에서 331.5 + 0.6T (m/s)로 구해요.</p>
+</details>
+
+<h2 class="sec" data-toc><span class="no">04</span>첫 번째 실험은 실패!</h2>
+<p>정말 그런지 직접 확인하고 싶었어요. 처음 쓴 도구는 <b>기주공명장치</b>예요. 긴 관 속 물 높이를 바꾸면서 소리가 가장 크게 울리는 높이를 찾는 장치인데, 그 높이로 소리의 파장을 알 수 있어요.</p>
+<figure><img src="assets/photo-setup.jpg" alt="실험실에 설치한 기주공명장치"><figcaption>실험실에 설치한 기주공명장치</figcaption></figure>
+<p>"스피커를 들고 움직이면 울리는 높이가 바뀌겠지?" 하고 해 봤지만, 아무리 해도 변화가 보이지 않았어요. 계산해 보니 1 m/s로 움직일 때 소리는 겨우 0.3%만 바뀌어요. 울리는 높이로 따지면 1 mm 안팎이에요.</p>
+<div class="w" data-w="reson" data-name="공명점 이동량 계산기"></div>
+
+<h2 class="sec" data-toc><span class="no">05</span>귀 대신 컴퓨터로 듣기</h2>
+<p>그래서 방법을 바꿨어요. 소리를 녹음해서 컴퓨터로 <b>주파수 분석</b>을 하기로요.</p>
+<ul class="pts">
+<li>스마트폰 한 대로 800, 1000, 1200 Hz 소리를 틀어 두고 가만히 둬요.</li>
+<li>다른 스마트폰으로 녹음하면서 약 7 m를 걸어 멀어져요. 7초 동안(약 1 m/s), 3.5초 동안(약 2 m/s).</li>
+<li>각각 5번씩, 그리고 가만히 서서도 녹음해요.</li>
+</ul>
+<figure><img src="assets/photo-temp.jpg" alt="실험실 온도계, 24.5도" style="max-height:200px"><figcaption>소리 속력을 구하려고 잰 실험실 온도, 24.5 ℃</figcaption></figure>
+<p>주파수 분석은 녹음된 소리 안에 어떤 높이의 소리가 얼마나 들어 있는지 보여 주는 그래프예요. 소리의 <b>성분표</b>라고 생각하면 돼요.</p>
+<div class="w" data-w="spec" data-name="실제 녹음의 성분표"></div>
+
+<h2 class="sec" data-toc><span class="no">06</span>이상한 숫자, 806 Hz?</h2>
+<p>분명히 800 Hz를 틀었는데 분석 프로그램은 806 Hz라고 알려 줬어요. 1000 Hz는 1002 Hz, 1200 Hz는 1198 Hz였고요. 처음에는 "방의 벽 때문에 소리가 바뀌었나?" 하고 생각했어요.</p>
+<p>이번 잡지를 만들면서 원본 녹음을 훨씬 정밀하게 다시 분석해 보니, 진짜 소리는 <b>800.01, 1000.02, 1200.03 Hz</b>였어요. 문제는 분석 도구의 <b>눈금</b>이었어요.</p>
+<p>1 cm 눈금밖에 없는 자로는 1 mm를 잴 수 없죠. 우리가 쓴 설정은 소리를 약 47 Hz 간격의 칸으로 나눠 봤는데, 찾으려던 변화는 겨우 2~7 Hz였어요.</p>
+<div class="w" data-w="bins" data-name="눈금 바꿔 보기"></div>
+
+<h2 class="sec" data-toc><span class="no">07</span>다시 분석한 진짜 결과</h2>
+<p>멀어지면서 녹음한 30개 중 <b>29개</b>에서 소리가 원래보다 낮아졌어요. 빨리 걸을수록 더 많이 낮아졌고요. 도플러 효과는 진짜였어요!</p>
+<div class="w" data-w="results" data-name="재분석 결과"></div>
+<p>그런데 낮아진 정도는 모두 이론값보다 조금 작았어요. 이론값은 "정확히 1 m/s, 2 m/s로 처음부터 끝까지 똑같이 걸었다"고 가정한 값이에요. 하지만 우리는 출발할 때 천천히 속도를 올리고, 도착하기 전에는 속도를 줄였어요.</p>
+<p>그래서 거꾸로 생각해 봤어요. <b>소리가 낮아진 정도로 우리가 실제로 얼마나 빨리 걸었는지 알아낼 수 있지 않을까?</b></p>
+<div class="tbl"><table><thead><tr><th>소리</th><th>목표 속력</th><th>소리로 계산한 속력</th></tr></thead><tbody>
+<tr><td>800 Hz</td><td>1 m/s</td><td>0.68 m/s</td></tr>
+<tr><td>800 Hz</td><td>2 m/s</td><td>1.00 m/s</td></tr>
+<tr><td>1000 Hz</td><td>1 m/s</td><td>0.37 m/s</td></tr>
+<tr><td>1000 Hz</td><td>2 m/s</td><td>0.70 m/s</td></tr>
+<tr><td>1200 Hz</td><td>1 m/s</td><td>0.76 m/s</td></tr>
+<tr><td>1200 Hz</td><td>2 m/s</td><td>1.36 m/s</td></tr></tbody></table></div>
+<p>계산해 보니 실제 평균 속력은 초속 0.4~1.4 m였어요. 사람이 실내에서 걷는 속도와 비슷하죠. 그리고 세 소리 모두 빨리 걸었을 때가 천천히 걸었을 때보다 1.5~1.9배 더 많이 낮아졌어요. <b>빨리 움직일수록 도플러 효과가 커진다</b>는 걸 직접 확인한 거예요.</p>
+<p>이렇게 소리나 전파가 바뀐 정도로 속력을 재는 방법은 실제로 쓰이고 있어요. 경찰이 차의 속도를 재는 스피드건, 야구에서 공의 속도를 재는 장치, 비구름의 움직임을 살피는 기상 레이더가 모두 도플러 효과를 이용해요. 우리는 스마트폰 두 대로 작은 스피드건을 만든 셈이에요.</p>
+
+<h2 class="sec" data-toc><span class="no">08</span>숨어 있던 두 번째 소리</h2>
+<p>1200 Hz 녹음 몇 개에서 원래보다 <b>높은</b> 1204~1206 Hz 소리가 함께 잡혔어요. 멀어지는데 왜 높아졌을까요? 답은 <b>앞쪽 벽</b>이에요.</p>
+<div class="svgfig" data-fig="reflect"></div>
+<p>벽에서 튕겨 나온 소리는 앞에서 나를 향해 와요. 나는 그 소리 쪽으로 걸어가고 있었으니 더 자주 잡히는 거예요. 이론값은 2 m/s에서 1206.9 Hz, 1 m/s에서 1203.5 Hz인데, 실제로 1204~1206 Hz와 1203.1 Hz가 잡혔어요. 낮아지지 않았던 1개가 바로 이 반사음이 더 크게 녹음된 경우였어요.</p>
+
+<h2 class="sec" data-toc><span class="no">09</span>멀어지는 별은 빨개진다</h2>
+<p>빛도 파동이라서 같은 일이 일어나요. 빛은 진동수가 낮아지면 빨간색 쪽으로, 높아지면 파란색 쪽으로 바뀌어 보여요.</p>
+<div class="svgfig" data-fig="redshift"></div>
+<p>멀리 있는 은하들의 빛은 대부분 빨간색 쪽으로 밀려 있어요. 이것을 <b>적색편이</b>라고 하고, 우주가 팽창하고 있다는 중요한 증거가 되었어요.</p>
+<details class="box"><summary>더 알고 싶은 친구들을 위해 · 빛은 공식이 달라요</summary>
+<p>소리는 공기라는 길을 따라 달리지만, 빛은 아무것도 없는 우주에서도 달려요. 그래서 빛의 도플러 효과에는 아인슈타인의 상대성 이론이 들어간 다른 공식을 써요.</p>
+</details>
+
+<h2 class="sec" data-toc><span class="no">10</span>실험이 실패했을 때 배운 것</h2>
+<p><b>실패했다고 끝이 아니에요.</b> 기주공명장치로는 변화가 안 보였지만, 왜 안 보일까를 계산해 보고 방법을 바꿀 수 있었어요.</p>
+<p><b>도구의 눈금을 확인해야 해요.</b> 806 Hz를 처음엔 그대로 믿었지만, 사실은 눈금이 굵어서 생긴 숫자였어요. "이 도구로 내가 찾는 차이를 구별할 수 있나?"를 먼저 물어봐야 해요.</p>
+<p>오늘 집에 가는 길에 지나가는 차 소리에 귀 기울여 보세요. 소리가 여러분과 술래잡기를 하고 있을지도 몰라요.</p>
+<p class="note">원 보고서: 「주파수 분석을 통한 도플러 효과 관찰」 · 재분석: 원본 녹음 33개 정밀 주파수 분석</p>
+<div class="endcard" data-end="gd"></div>
+</template>
+
+<!-- ======================= 경사 하강법 ======================= -->
+<template id="tpl-gd">
+<p class="blk-title">눈을 감고 산을 내려가는 법</p>
+<p class="blk-sub">경사를 따라 한 걸음씩, 경사 하강법 이야기</p>
+<p class="byline">철수세미 · 데이터 과학</p>
+
+<h2 class="sec" data-toc><span class="no">01</span>점들 사이에 줄 하나 긋기</h2>
+<p class="lede">아래 점 117개는 1905년부터 2021년까지 우리나라가 1년 동안 내뿜은 이산화탄소의 양이에요. 1950년에는 약 2백만 톤이었는데, 2018년에는 약 6억 7천만 톤이 되었어요.</p>
+<p>미래를 짐작하는 가장 간단한 방법은 점들을 가장 잘 따라가는 직선 하나를 긋는 거예요. 이걸 <b>선형 회귀</b>라고 해요. 직접 그어 볼까요?</p>
+<div class="w" data-w="fit" data-name="직선 맞추기 게임"></div>
+<p>수업에서는 이 직선을 컴퓨터 명령어 한 줄(LinearRegression)로 바로 구했어요. 그런데 궁금해졌어요. <b>컴퓨터는 어떻게 가장 잘 맞는 직선을 찾을까?</b></p>
+
+<h2 class="sec" data-toc><span class="no">02</span>얼마나 잘 맞았나를 점수로</h2>
+<p>각 점에서 직선까지 위아래로 떨어진 거리를 재고, 그 거리를 <b>제곱</b>해서 평균을 내요. 제곱하는 이유는 위로 빗나간 것과 아래로 빗나간 것이 서로 지워지지 않게 하고, 크게 빗나간 점에 더 큰 벌점을 주기 위해서예요.</p>
+<p>이 점수를 평균 제곱 오차(MSE)라고 해요. 여기서는 <b>오차 점수</b>라고 부를게요. 위 게임에서 "오차를 사각형으로 보기"를 켜 보세요. 사각형 넓이의 평균이 바로 오차 점수예요.</p>
+
+<h2 class="sec" data-toc><span class="no">03</span>오차 점수는 하나의 지형</h2>
+<p>직선은 <b>기울기(m)</b>와 <b>절편(b)</b> 두 숫자로 정해져요. m과 b를 바꿀 때마다 오차 점수도 바뀌어요.</p>
+<p>m과 b를 지도 위의 위치로, 그 위치의 오차 점수를 땅의 높이로 생각해 봐요. 그러면 가장 잘 맞는 직선 찾기는 <b>이 지형에서 가장 낮은 골짜기 바닥 찾기</b>가 돼요.</p>
+<div class="w" data-w="view3d" data-name="오차 점수 산"></div>
+
+<h2 class="sec" data-toc><span class="no">04</span>눈을 감고 산을 내려가기</h2>
+<p>컴퓨터는 이 지형을 한눈에 볼 수 없어요. 짙은 안개 낀 산 위에 눈을 감고 서 있는 것과 같아요. 이럴 땐 <b>발밑의 경사</b>를 느껴서 내리막 쪽으로 한 걸음씩 내려가면 돼요. 더 이상 내리막이 없으면 거기가 바닥이에요.</p>
+<p>지도에는 방향이 두 개(m, b) 있으니까 한 방향씩 따로 경사를 재요. 이걸 수학에서는 <b>편미분</b>이라고 해요. 먼저 m 한 방향만 바꾸면서 안개 속을 직접 내려가 보세요.</p>
+<div class="w" data-w="fog" data-name="안개 속 하산 게임"></div>
+<p>방금 여러분이 한 일, 경사를 보고 내리막으로 한 걸음씩 가는 것을 컴퓨터가 자동으로 하면 그게 <b>경사 하강법</b>이에요.</p>
+<details class="box"><summary>더 알고 싶은 친구들을 위해 · 한 걸음의 공식</summary>
+<p class="formula">새 m = 지금 m − 보폭 × (m 방향 기울기)<br>새 b = 지금 b − 보폭 × (b 방향 기울기)</p>
+<p>기울기는 오르막 방향을 알려 주니까, 빼야 내려가요. 우리 탐구에서는 Python의 sympy로 오차 점수를 m과 b에 대해 편미분하고, 이 계산을 1000번 반복했어요.</p>
+</details>
+
+<h2 class="sec" data-toc><span class="no">05</span>보폭이 중요해요</h2>
+<p>한 걸음을 얼마나 크게 내딛느냐를 <b>학습률</b>이라고 해요. 여기서는 보폭이라고 부를게요. 너무 작으면 하루 종일 걸리고, 크면 바닥을 지나쳐 반대편 벽으로 넘어가요.</p>
+<div class="w" data-w="practice" data-name="보폭 연습장"></div>
+<p>우리는 보폭 7가지로 각각 1000걸음씩 걸어 봤어요. 0.1이 가장 빨랐고, 0.0001은 1000걸음 뒤에도 산 중턱이었어요.</p>
+<div class="w" data-w="lrs" data-name="보폭별 비교"></div>
+<p>우리가 시험한 보폭 중에는 튕겨 나간 경우가 없었어요. 계산해 보니 이 지형에서는 보폭이 약 <b>0.79</b>를 넘으면 골짜기 양쪽 벽을 오가며 점점 높이 올라가 버려요. 그보다 작은 보폭으로 진짜 골짜기에서 직접 굴려 보세요.</p>
+<div class="w" data-w="play" data-name="진짜 골짜기에서 굴려 보기"></div>
+
+<h2 class="sec" data-toc><span class="no">06</span>지도 크기 맞추기, 정규화</h2>
+<p>계산 전에 연도(1905~2021)를 0~1 사이 숫자로 바꿨어요. 1905년은 0, 2021년은 1이에요. 이걸 <b>정규화</b>라고 해요.</p>
+<p>연도를 그대로 쓰면 지형이 엄청나게 좁고 긴 협곡이 돼요. 그러면 보폭을 0.00000026보다 작게 해야 겨우 안 튕겨 나가는데, 그렇게 작은 보폭으로는 영원히 바닥에 못 가요.</p>
+<div class="w" data-w="norm" data-name="정규화 스위치"></div>
+
+<h2 class="sec" data-toc><span class="no">07</span>이상하게 움직인 b</h2>
+<p>보폭별 비교에서 "m과 b" 그래프를 보면, b가 처음에 <b>올라갔다가 다시 내려와요.</b> 정답 b는 −170인데 말이에요.</p>
+<p>이 골짜기는 비스듬히 기울어진 긴 타원 모양이에요. 공은 먼저 가장 가파른 쪽으로 굴러가는데, 그 방향이 마침 b가 커지는 쪽이었어요. 바닥에 닿은 뒤에는 바닥을 따라 정답 쪽으로 천천히 움직이면서 b가 다시 줄어든 거예요. 「진짜 골짜기에서 굴려 보기」에서 보폭 0.1로 굴려 보면 공이 골짜기 벽을 따라 돌아 내려가는 길이 보여요.</p>
+
+<h2 class="sec" data-toc><span class="no">08</span>컴퓨터 정답과 비교하기</h2>
+<div class="tbl"><table><thead><tr><th></th><th>경사 하강법</th><th>LinearRegression</th></tr></thead><tbody>
+<tr><td>기울기 m</td><td>664.33869</td><td>664.33952</td></tr>
+<tr><td>절편 b</td><td>−170.39212</td><td>−170.39257</td></tr>
+<tr><td>오차 점수</td><td>12533.334131547</td><td>12533.334131487</td></tr></tbody></table></div>
+<p class="note">경사 하강법: 보폭 0.1, 1000걸음</p>
+<p>두 오차 점수의 차이는 <b>0.00000006</b>이에요. 눈을 감고 내려갔는데 거의 정확히 바닥에 도착했어요.</p>
+<p>처음에는 경사 하강법이 더 좋게 나오지 않을까 기대했어요. 하지만 LinearRegression은 공식으로 정확한 바닥 위치를 바로 계산하니까, 경사 하강법은 거기에 가까워질 수는 있어도 더 낮아질 수는 없어요.</p>
+
+<h2 class="sec" data-toc><span class="no">09</span>그럼 왜 경사 하강법을 쓸까?</h2>
+<p>직선 하나를 찾는 문제에서는 공식이 더 빠르고 정확해요. 하지만 사진을 알아보거나 대화하는 <b>인공지능</b>은 m, b 같은 숫자가 수백만 개, 수십억 개예요. 그런 거대한 지형에서는 바닥을 공식으로 바로 계산하기가 사실상 불가능해요.</p>
+<p>그래서 오늘날의 인공지능은 대부분 경사 하강법과 그것을 개량한 방법으로 학습해요. 눈을 감고 한 걸음씩 내려가는 단순한 방법이 인공지능을 가르치는 핵심이에요.</p>
+
+<h2 class="sec" data-toc><span class="no">10</span>직선이 항상 정답은 아니에요</h2>
+<div class="w" data-w="final" data-name="찾은 직선과 실제 데이터"></div>
+<p>1930년대 중반까지 직선은 0보다 작은, 있을 수 없는 배출량을 가리켜요. 2018년 이후 실제 배출량은 줄었는데 직선은 계속 올라가요. 경사 하강법은 <b>직선 중에서</b> 가장 좋은 걸 찾아 줄 뿐, 직선이 이 데이터에 맞는 모양인지는 알려 주지 않아요. 그건 여전히 사람이 생각할 몫이에요.</p>
+
+<h2 class="sec" data-toc><span class="no">11</span>마치며</h2>
+<p>명령어 한 줄 뒤에 숨어 있던 원리는 생각보다 단순했어요. 잘 맞는 정도를 점수로 만들고, 그 점수를 지형으로 보고, 경사를 따라 한 걸음씩 내려가기.</p>
+<p>골짜기에서 보폭을 너무 크게 했다가 공이 날아가 버리는 모습을 보면, 인공지능을 가르치는 사람들이 왜 보폭 하나에 신경 쓰는지 알게 될 거예요.</p>
+<p class="note">원 보고서: 「경사 하강법을 이용한 선형 회귀 구현」 · 데이터: Global Carbon Budget 2022 (GCB2022v27)</p>
+<div class="endcard" data-end="doppler"></div>
+</template>
+
+<script>
+"use strict";
+/* ================= data ================= */
+const CO2=[0.000771,0.0,0.0,0.0,0.008292,0.010413,0.012342,0.015427,0.017934,0.025648,0.032012,0.026612,0.0,0.026227,0.031048,0.040304,0.043389,0.044354,0.053032,0.055731,0.0889,0.095457,0.098928,0.11397,0.13094,0.123419,0.130747,0.154081,0.181657,0.241584,0.284151,0.333496,0.35681,0.477477,0.623204,0.801645,0.89393,0.986907,0.956392,1.010473,0.003634,0.487282,0.89762,1.670725,2.176327,2.183685,2.923842,3.462331,4.693406,5.158674,6.444738,7.55499,8.214302,9.008587,11.221376,12.540118,14.448706,17.261588,21.083171,22.195155,24.978308,29.982233,35.113237,37.197142,42.468221,53.716351,58.533736,60.247062,72.974635,75.550511,81.665798,93.104556,105.459699,113.119296,132.874243,134.524426,139.58973,140.781901,149.13361,160.700458,168.757669,176.297245,185.35838,210.953466,223.510385,250.510837,275.688225,299.905413,330.173952,355.694835,383.665454,421.058363,444.989603,378.052437,410.537126,439.980692,455.630633,476.06488,485.212785,491.389426,498.688299,503.478183,521.708715,532.650764,537.819831,594.33911,623.442837,627.943034,634.580703,629.366484,634.177278,637.914084,654.537269,670.168699,646.102263,597.634242,616.074996];
+const SPEC=[-45.6,-45.4,-45.3,-45.2,-45.0,-44.9,-44.7,-44.6,-44.4,-44.3,-44.1,-44.0,-43.8,-43.6,-43.5,-43.3,-43.1,-42.9,-42.7,-42.5,-42.3,-42.1,-41.9,-41.7,-41.5,-41.2,-41.0,-40.8,-40.6,-40.3,-40.1,-39.9,-39.7,-39.5,-39.2,-39.0,-38.7,-38.5,-38.2,-38.0,-37.7,-37.4,-37.2,-36.9,-36.6,-36.3,-36.2,-36.0,-35.8,-35.6,-35.5,-35.3,-35.1,-34.9,-34.7,-34.5,-34.3,-34.1,-34.1,-34.1,-34.2,-34.2,-34.2,-34.3,-34.3,-34.4,-34.4,-34.4,-34.3,-34.2,-34.2,-34.1,-34.0,-33.9,-33.8,-33.8,-33.8,-33.9,-33.9,-33.9,-34.0,-34.0,-34.4,-35.0,-35.5,-36.0,-36.6,-37.2,-37.5,-37.9,-38.3,-38.7,-39.1,-39.0,-38.9,-38.8,-38.6,-38.7,-39.0,-39.4,-39.7,-40.0,-40.4,-40.7,-41.0,-41.3,-41.4,-41.5,-41.6,-41.5,-41.4,-41.2,-38.8,-36.1,-33.3,-24.5,-15.1,-6.5,-3.9,-1.3,-1.1,-3.2,-5.8,-17.0,-28.5,-35.0,-39.8,-42.8,-44.3,-45.3,-45.8,-46.3,-46.7,-47.0,-47.2,-47.5,-48.0,-48.3,-48.6,-49.2,-50.0,-50.9,-51.6,-52.0,-52.1,-52.1,-52.3,-52.4,-51.9,-50.3,-50.6,-52.1,-53.1,-53.7,-53.7,-53.7,-54.1,-55.6,-57.0,-57.8,-58.3,-58.3,-57.8,-57.4,-56.8,-56.8,-50.4,-43.2,-50.0,-58.2,-58.1,-58.2,-58.7,-60.1,-60.3,-60.0,-59.5,-59.0,-57.6,-56.4,-58.0,-61.0,-60.4,-60.7,-60.7,-62.0,-62.9,-63.4,-62.8,-60.2,-63.6,-64.2,-63.7,-64.2,-66.3,-65.6,-63.1,-62.6,-63.3,-61.8,-63.1,-63.4,-63.7,-65.0,-65.9,-66.6,-67.4,-67.8,-67.0,-68.1,-68.8,-69.3,-68.6,-68.2,-71.2,-70.6,-70.2,-69.5,-67.0,-66.2];
+const YEARS=CO2.map((_,i)=>1905+i);
+const XN=YEARS.map(y=>(y-1905)/116);
+const N=CO2.length;
+const S=(()=>{let sx=0,sxx=0,sy=0,sxy=0,syy=0;for(let i=0;i<N;i++){const x=XN[i],y=CO2[i];sx+=x;sxx+=x*x;sy+=y;sxy+=x*y;syy+=y*y}return{sx,sxx,sy,sxy,syy}})();
+const mse=(m,b)=>{let t=0;for(let i=0;i<N;i++){const r=m*XN[i]+b-CO2[i];t+=r*r}return t/N};
+const grad=(m,b)=>[2/N*(m*S.sxx+b*S.sx-S.sxy),2/N*(m*S.sx+N*b-S.sy)];
+const OPT=(()=>{const d=N*S.sxx-S.sx*S.sx;const m=(N*S.sxy-S.sx*S.sy)/d;const b=(S.sy-m*S.sx)/N;return{m,b,e:mse(m,b)}})();
+
+const V_SOUND=331.5+0.6*24.5;
+const DOP={base:{800:800.01,1000:1000.02,1200:1200.03},
+ rec:{'800-1':[798.57,798.52,798.43,798.39,798.25],'800-2':[798.11,797.38,797.47,797.88,797.70],
+ '1000-1':[998.98,998.93,998.79,999.02,999.07],'1000-2':[998.25,996.92,998.20,998.29,998.29],
+ '1200-1':[1203.14,1198.24,1197.92,1196.73,1196.73],'1200-2':[1195.45,1196.00,1196.37,1194.31,1194.40]}};
+
+/* ================= helpers ================= */
+const $=s=>document.querySelector(s);
+const el=(tag,attrs={},html='')=>{const e=document.createElement(tag);for(const k in attrs){if(k==='class')e.className=attrs[k];else e.setAttribute(k,attrs[k])}if(html)e.innerHTML=html;return e};
+const css=(node,name)=>getComputedStyle(node).getPropertyValue(name).trim();
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let AC=null;function ac(){if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)()}if(AC.state==='suspended')AC.resume();return AC}
+function fmt(v,d=2){return Number(v).toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d})}
+
+function canvasIn(host,ratio){
+  const c=el('canvas');c.style.aspectRatio=ratio;host.appendChild(c);
+  const st={c,ctx:c.getContext('2d'),w:0,h:0,draw:null};CANV.push(st);
+  new ResizeObserver(()=>{const r=c.getBoundingClientRect();if(r.width<10)return;const d=Math.min(2,devicePixelRatio||1);
+    const W=Math.round(r.width*d),H=Math.round(r.height*d);if(c.width===W&&c.height===H)return;
+    c.width=W;c.height=H;st.ctx.setTransform(d,0,0,d,0,0);st.w=r.width;st.h=r.height;st.draw&&st.draw()}).observe(c);
+  return st;
+}
+const TICKERS=new Set();const CANV=[];
+function loop(t){for(const f of TICKERS){try{f(t)}catch(e){console.error(e);TICKERS.delete(f)}}requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+const visible=node=>node.isConnected&&node.offsetParent!==null&&!node.closest('.measure');
+function head(w,k,t){w.appendChild(el('div',{class:'w-h'},`<span class="k">${k}</span><span class="t">${t}</span>`))}
+function pal(w){return{acc:css(w,'--acc'),acc2:css(w,'--acc2'),ink:css(w,'--ink'),muted:css(w,'--muted'),line:css(w,'--line'),tint:css(w,'--tint'),paper:css(w,'--paper')}}
+
+/* ================= DOPPLER WIDGETS ================= */
+const WID={};
+
+WID.tag=w=>{
+  head(w,'직접 해 보기','술래잡기 게임');
+  const cv=canvasIn(w,'16/7');
+  const ctl=el('div',{class:'row'},`<label for="tagU">내 속력 <input type="range" id="tagU" min="0" max="1.2" step="0.05" value="0.5"></label><span class="stat" id="tagUL"></span><button class="btn" id="tagR">다시 시작</button>`);
+  w.appendChild(ctl);
+  const out=el('div',{class:'grid2'},`<div><div class="note">1초에 잡히는 횟수</div><div class="big" id="tagRate">-</div></div><div><div class="note">가만히 있으면</div><div class="big" style="color:var(--muted)">2번</div></div>`);
+  w.appendChild(out);const msg=el('div',{class:'msg'});w.appendChild(msg);
+  const U=ctl.querySelector('#tagU'),UL=ctl.querySelector('#tagUL'),R=out.querySelector('#tagRate');
+  const V=4, T=0.5; let st;
+  function reset(){st={t:0,P:6,ch:[],next:0,hits:[],flash:0}}
+  reset();ctl.querySelector('#tagR').onclick=reset;
+  const lab=()=>{const u=+U.value;UL.textContent=`술래 속력의 ${u.toFixed(2)}배`};U.oninput=()=>{lab();st.hits=[];st.hitStart=st.t};lab();
+  let last=0;
+  cv.draw=()=>render();
+  function step(dt){
+    const u=+U.value;st.t+=dt;
+    while(st.next<=st.t){st.ch.push(0+(st.t-st.next)*V);st.next+=T}
+    const P0=st.P;st.P+=u*V*dt;
+    for(let i=0;i<st.ch.length;i++){const x0=st.ch[i],x1=x0+V*dt;if(x0<P0&&x1>=st.P){st.hits.push(st.t);st.flash=1}st.ch[i]=x1}
+    st.ch=st.ch.filter(x=>x<st.P+12);
+    if(st.ch.length>80)st.ch=st.ch.slice(-80);
+    st.hits=st.hits.filter(h=>h>st.t-4);st.flash=Math.max(0,st.flash-dt*3);
+  }
+  function render(){
+    const {ctx,w:W,h:H}=cv;if(!W)return;const p=pal(w);ctx.clearRect(0,0,W,H);
+    const sc=W/16, cx=W*0.62, sx=x=>(x-st.P)*sc+cx, gy=H*0.58;
+    ctx.strokeStyle=p.line;ctx.lineWidth=2;ctx.setLineDash([2,10]);ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();ctx.setLineDash([]);
+    // ticks (distance markers)
+    ctx.fillStyle=p.muted;ctx.font='11px '+css(w,'--f-mono');
+    for(let m=Math.floor((st.P-12)/2)*2;m<st.P+8;m+=2){const X=sx(m);if(X<0||X>W)continue;ctx.fillRect(X,gy+6,1,6);ctx.fillText(m+'m',X-8,gy+26)}
+    const s0=sx(0);if(s0>-30){ctx.fillStyle=p.acc;ctx.beginPath();ctx.arc(s0,gy,10,0,7);ctx.fill();ctx.fillStyle=p.muted;ctx.fillText('출발선',s0-16,gy-22)}
+    let behind=0;
+    for(const x of st.ch){const X=sx(x);if(X<-20){behind++;continue}if(X>W+20)continue;
+      ctx.strokeStyle=p.acc;ctx.lineCap='round';
+      for(let j=0;j<3;j++){ctx.globalAlpha=1-j*0.3;ctx.lineWidth=4-j;ctx.beginPath();ctx.arc(X-14,gy,8+j*7,-0.9,0.9);ctx.stroke()}ctx.globalAlpha=1}
+    // player
+    ctx.fillStyle=p.acc2;ctx.beginPath();ctx.arc(cx,gy,13+st.flash*5,0,7);ctx.fill();
+    ctx.fillStyle=p.ink;ctx.font='15px '+css(w,'--f-disp');ctx.fillText('나',cx-7,gy-24);
+    if(st.flash>0){ctx.fillStyle=p.acc2;ctx.fillText('잡혔다!',cx+20,gy-20)}
+    if(behind>0){ctx.fillStyle=p.acc;ctx.font='13px '+css(w,'--f-body');ctx.fillText(`← 술래 ${behind}명이 뒤에서 쫓아오는 중`,10,20)}
+  }
+  TICKERS.add(t=>{if(!visible(w)){last=t;return}const dt=Math.min(0.05,(t-(last||t))/1000);last=t;step(dt);render();
+    const u=+U.value;const span=Math.min(4,st.t-(st.hitStart||0));const rate=span>1.5?st.hits.filter(h=>h>st.t-span).length/span:null;
+    R.textContent=rate===null?'재는 중…':rate.toFixed(1)+'번';
+    msg.textContent=u>=1?'술래와 같거나 더 빠르면 아무도 나를 못 잡아요!':u===0?'가만히 있으면 1초에 2명씩 잡혀요.':`도망칠수록 덜 잡혀요. 이론값: 1초에 ${(2*(1-u)).toFixed(1)}번`});
+};
+
+WID.tones=w=>{
+  head(w,'들어 보기','소리 높낮이와 구급차');
+  const row=el('div',{class:'row'});w.appendChild(row);
+  [[400,'400 Hz 낮은 소리'],[800,'800 Hz'],[1200,'1200 Hz 높은 소리']].forEach(([f,l])=>{const b=el('button',{class:'btn'},l);b.onclick=()=>beep(f);row.appendChild(b)});
+  const s=el('button',{class:'btn primary'},'구급차 지나가는 소리');s.onclick=siren;row.appendChild(s);
+  w.appendChild(el('p',{class:'note'},'구급차는 1초에 25 m로 지나가요. 다가올 때와 멀어질 때 높이를 비교해 보세요. 소리가 갑자기 커질 수 있으니 음량을 줄이고 들어 주세요.'));
+  function beep(f){const a=ac(),o=a.createOscillator(),g=a.createGain();o.frequency.value=f;g.gain.setValueAtTime(0,a.currentTime);g.gain.linearRampToValueAtTime(.18,a.currentTime+.03);g.gain.setValueAtTime(.18,a.currentTime+.6);g.gain.linearRampToValueAtTime(0,a.currentTime+.7);o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+.75)}
+  function siren(){const a=ac(),o=a.createOscillator(),g=a.createGain();o.type='triangle';const t0=a.currentTime+.05,D=6,vs=25,d0=6,c=V_SOUND;
+    for(let k=0;k<=D*50;k++){const t=k/50,x=(t-D/2)*vs,dist=Math.hypot(x,d0),cos=-x/dist,fs=(Math.floor(t/0.45)%2?770:960),f=fs*c/(c-vs*cos);
+      o.frequency.setValueAtTime(f,t0+t);g.gain.setValueAtTime(Math.min(.22,1.4/dist),t0+t)}
+    g.gain.setValueAtTime(0,t0+D);o.connect(g).connect(a.destination);o.start(t0);o.stop(t0+D+.05)}
+};
+
+WID.sim=w=>{
+  head(w,'직접 해 보기','소리 술래잡기 시뮬레이터');
+  const cv=canvasIn(w,'16/9');
+  const ctl=el('div',{class:'row'},`<label for="simU">다가가기 ← <input type="range" id="simU" min="-0.6" max="1" step="0.02" value="0.3"> → 도망치기</label>`);w.appendChild(ctl);
+  const row=el('div',{class:'row'},`<button class="btn" id="simSnd">소리 켜기</button><button class="btn" id="simWalk">실제 걷는 속도(1 m/s)</button><button class="btn" id="simStop">멈추기</button>`);w.appendChild(row);
+  const out=el('div',{class:'stat',style:'min-height:4.6em'});w.appendChild(out);
+  const U=ctl.querySelector('#simU');let snd=null;
+  const st={t:0,fronts:[],next:0,ox:0,hits:[],init:false};const C=110,TP=0.3;
+  function resetObs(){st.ox=cv.w*0.55;st.hits=[]}
+  row.querySelector('#simWalk').onclick=()=>{U.value=(1/V_SOUND).toFixed(4);st.hits=[]};
+  row.querySelector('#simStop').onclick=()=>{U.value=0;st.hits=[]};
+  U.oninput=()=>{st.hits=[]};
+  row.querySelector('#simSnd').onclick=e=>{if(snd){snd.g.gain.setTargetAtTime(0,AC.currentTime,.03);snd.o.stop(AC.currentTime+.2);snd=null;e.target.textContent='소리 켜기';e.target.classList.remove('on');return}
+    const a=ac(),o=a.createOscillator(),g=a.createGain();o.frequency.value=600;g.gain.value=0;g.gain.setTargetAtTime(.12,a.currentTime,.05);o.connect(g).connect(a.destination);o.start();snd={o,g};e.target.textContent='소리 끄기';e.target.classList.add('on')};
+  let last=0;
+  TICKERS.add(t=>{
+    if(!visible(w)){last=t;if(snd){snd.g.gain.setTargetAtTime(0,AC.currentTime,.03);snd.o.stop(AC.currentTime+.2);snd=null;row.querySelector('#simSnd').textContent='소리 켜기';row.querySelector('#simSnd').classList.remove('on')}return}
+    const {ctx,w:W,h:H}=cv;if(!W)return;if(!st.init){st.init=true;resetObs()}
+    const dt=Math.min(.05,(t-(last||t))/1000);last=t;st.t+=dt;const u=+U.value;
+    const sx=W*0.14,sy=H*0.5;
+    while(st.next<=st.t){st.fronts.push(0);st.next+=TP}
+    const d0=st.ox-sx;st.ox+=u*C*dt;const d1=st.ox-sx;
+    st.fronts=st.fronts.map(r=>{const r1=r+C*dt;if((r<d0&&r1>=d1)||(r>d0&&r1<=d1&&false))st.hits.push(st.t);return r1}).filter(r=>r<Math.hypot(W,H));
+    if(u<0){/* approaching: count fronts crossing */}
+    if(st.ox>W-10||st.ox<sx+30){resetObs()}
+    st.hits=st.hits.filter(h=>h>st.t-3);
+    const p=pal(w);ctx.clearRect(0,0,W,H);
+    for(const r of st.fronts){ctx.strokeStyle=p.acc;ctx.globalAlpha=Math.max(.1,1-r/(W*1.1));ctx.lineWidth=2;ctx.beginPath();ctx.arc(sx,sy,r,0,7);ctx.stroke()}ctx.globalAlpha=1;
+    ctx.fillStyle=p.acc;ctx.beginPath();ctx.arc(sx,sy,11,0,7);ctx.fill();ctx.fillStyle=p.paper;ctx.beginPath();ctx.arc(sx,sy,4,0,7);ctx.fill();
+    ctx.fillStyle=p.acc2;ctx.beginPath();ctx.arc(st.ox,sy,11,0,7);ctx.fill();
+    ctx.strokeStyle=p.acc2;ctx.lineWidth=3;ctx.beginPath();const dir=Math.sign(u)||0;if(dir){ctx.moveTo(st.ox+dir*18,sy);ctx.lineTo(st.ox+dir*34,sy);ctx.stroke()}
+    ctx.fillStyle=p.ink;ctx.font='14px '+css(w,'--f-disp');ctx.fillText('나',st.ox-6,sy-20);ctx.fillText('스피커',sx-20,sy+32);
+    const ratio=1-u, base=1/TP;const span=Math.min(3,st.t);const meas=st.hits.length/span;
+    if(snd)snd.o.frequency.setTargetAtTime(Math.max(30,600*ratio),AC.currentTime,.05);
+    const real=800*ratio;
+    out.innerHTML=`화면 속 파면: 1초에 ${base.toFixed(1)}개 출발 → 내가 만난 파면 ${meas.toFixed(1)}개/초<br>내 속력 = 소리 속력의 ${u.toFixed(3)}배 (${fmt(Math.abs(u)*V_SOUND,1)} m/s) → 800 Hz가 <b>${fmt(Math.max(0,real),1)} Hz</b>로 들려요`;
+  });
+};
+
+WID.reson=w=>{
+  head(w,'계산해 보기','공명점은 얼마나 움직일까?');
+  const ctl=el('div',{class:'row'},`<label for="rsF">진동수 <select id="rsF"><option>800</option><option>1000</option><option>1200</option></select> Hz</label><label for="rsV">속력 <input type="range" id="rsV" min="0" max="5" step="0.1" value="1"></label><span class="stat" id="rsVL"></span>`);w.appendChild(ctl);
+  const cv=canvasIn(w,'16/6');const out=el('div',{class:'stat'});w.appendChild(out);
+  const F=ctl.querySelector('#rsF'),Vv=ctl.querySelector('#rsV'),VL=ctl.querySelector('#rsVL');
+  function calc(){const f=+F.value,v=+Vv.value,c=V_SOUND,f2=f*(c-v)/c,l1=c/f*100,l2=c/f2*100,L1=3*l1/4,L2=3*l2/4,dmm=(L2-L1)*10;VL.textContent=v.toFixed(1)+' m/s';
+    out.innerHTML=`들리는 진동수 ${fmt(f2,2)} Hz · 겉보기 파장 ${fmt(l1,2)} → ${fmt(l2,2)} cm<br>2차 공명점 위치 ${fmt(L1,1)} cm → <b>${fmt(L2,2)} cm</b>, 움직인 거리 <b>${fmt(dmm,2)} mm</b>`;return{dmm}}
+  cv.draw=()=>{const {ctx,w:W,h:H}=cv;if(!W)return;const p=pal(w);const {dmm}=calc();ctx.clearRect(0,0,W,H);
+    const px=W/12; const x0=W/2-6*px;// show 12 mm ruler
+    ctx.fillStyle=p.paper;ctx.fillRect(x0,H*.3,12*px,H*.4);ctx.strokeStyle=p.ink;ctx.lineWidth=1;
+    for(let i=0;i<=12;i++){const X=x0+i*px;ctx.beginPath();ctx.moveTo(X,H*.3);ctx.lineTo(X,H*.3+(i%5?10:18));ctx.stroke()}
+    ctx.fillStyle=p.muted;ctx.font='11px '+css(w,'--f-mono');ctx.fillText('1칸 = 1 mm (자의 가장 작은 눈금)',x0,H*.88);
+    const a=x0+3*px;ctx.fillStyle=p.acc;ctx.fillRect(a-1.5,H*.22,3,H*.56);ctx.fillText('정지',a-12,H*.17);
+    const b=a+dmm*px;ctx.fillStyle=p.acc2;ctx.fillRect(b-1.5,H*.22,3,H*.56);ctx.fillText('움직일 때',b+4,H*.17)};
+  F.onchange=Vv.oninput=()=>cv.draw();calc();
+};
+
+WID.spec=w=>{
+  head(w,'실제 데이터','가만히 서서 녹음한 800 Hz의 성분표');
+  const cv=canvasIn(w,'16/8');
+  w.appendChild(el('p',{class:'note'},'Audacity와 같은 방식(1024칸)으로 실제 녹음을 분석했어요. 가장 높이 솟은 봉우리가 스피커 소리예요. 나머지는 방 안의 잡음과 울림이에요.'));
+  cv.draw=()=>{const {ctx,w:W,h:H}=cv;if(!W)return;const p=pal(w);ctx.clearRect(0,0,W,H);
+    const L=Math.log10,fx=f=>36+(L(f)-L(50))/(L(8000)-L(50))*(W-46),fy=d=>12+(-d)/80*(H-40);
+    ctx.strokeStyle=p.line;ctx.fillStyle=p.muted;ctx.font='10px '+css(w,'--f-mono');
+    [100,200,500,1000,2000,5000].forEach(f=>{const X=fx(f);ctx.beginPath();ctx.moveTo(X,12);ctx.lineTo(X,H-28);ctx.stroke();ctx.fillText(f>=1000?f/1000+'k':f,X-8,H-14)});
+    [0,-20,-40,-60].forEach(d=>{const Y=fy(d);ctx.fillText(d+'dB',0,Y+3)});
+    ctx.beginPath();SPEC.forEach((d,i)=>{const f=50*Math.pow(8000/50,i/(SPEC.length-1));const X=fx(f),Y=fy(Math.max(-80,d));i?ctx.lineTo(X,Y):ctx.moveTo(X,Y)});
+    ctx.lineTo(fx(8000),H-28);ctx.lineTo(fx(50),H-28);ctx.closePath();ctx.fillStyle=p.acc;ctx.globalAlpha=.75;ctx.fill();ctx.globalAlpha=1;
+    const X=fx(800);ctx.fillStyle=p.acc2;ctx.font='13px '+css(w,'--f-disp');ctx.fillText('← 스피커 소리 (800 Hz)',X+8,fy(-2)+8)};
+};
+
+WID.bins=w=>{
+  head(w,'직접 해 보기','분석 눈금을 바꿔 보세요');
+  const cv=canvasIn(w,'16/9');
+  const ctl=el('div',{class:'row'},`<label for="bnN">굵은 눈금 <input type="range" id="bnN" min="10" max="16" step="1" value="10"> 가는 눈금</label>`);w.appendChild(ctl);
+  const out=el('div',{class:'stat'});w.appendChild(out);
+  w.appendChild(el('p',{class:'note'},'초록 막대: 가만히 있을 때(800 Hz) · 주황 테두리: 1 m/s로 멀어질 때(797.7 Hz) · 점선: 진짜 위치. 컴퓨터로 만든 소리로 실험해요.'));
+  const fs=48000,f1=800,f2=800*(V_SOUND-1)/V_SOUND,lo=740,hi=860;let data=null;
+  function dft(Nn){const k0=Math.floor(lo*Nn/fs),k1=Math.ceil(hi*Nn/fs),res=[];
+    const win=new Float32Array(Nn);for(let n=0;n<Nn;n++)win[n]=0.5-0.5*Math.cos(2*Math.PI*n/(Nn-1));
+    const sig=[f1,f2].map(f=>{const s=new Float32Array(Nn);for(let n=0;n<Nn;n++)s[n]=Math.sin(2*Math.PI*f*n/fs)*win[n];return s});
+    for(let k=k0;k<=k1;k++){const fr=k*fs/Nn,wv=2*Math.PI*k/Nn,row=[fr];for(const s of sig){let re=0,im=0;const c=Math.cos(wv),sn=Math.sin(wv);let cr=1,ci=0;for(let n=0;n<Nn;n++){re+=s[n]*cr;im-=s[n]*ci;const t=cr*c-ci*sn;ci=cr*sn+ci*c;cr=t}row.push(Math.hypot(re,im))}res.push(row)}
+    const mx=Math.max(...res.map(r=>Math.max(r[1],r[2])));res.forEach(r=>{r[1]/=mx;r[2]/=mx});return res}
+  function upd(){const Nn=1<<+ctl.querySelector('#bnN').value;data={Nn,bw:fs/Nn,rows:dft(Nn)};
+    const pk=i=>data.rows.reduce((a,r)=>r[i]>a[i]?r:a)[0];
+    out.innerHTML=`칸 하나 = ${fmt(fs/Nn,2)} Hz · 필요한 녹음 길이 ${fmt(Nn/fs,2)}초<br>가장 큰 칸 · 정지 ${fmt(pk(1),1)} Hz, 멀어질 때 ${fmt(pk(2),1)} Hz → ${Math.abs(pk(1)-pk(2))<1e-6?'<b>구별 못 해요</b>':'<b>구별돼요!</b>'}`;cv.draw()}
+  cv.draw=()=>{const {ctx,w:W,h:H}=cv;if(!W||!data)return;const p=pal(w);ctx.clearRect(0,0,W,H);
+    const fx=f=>10+(f-lo)/(hi-lo)*(W-20),fy=v=>H-26-v*(H-44);
+    ctx.fillStyle=p.muted;ctx.font='10px '+css(w,'--f-mono');[760,780,800,820,840].forEach(f=>{const X=fx(f);ctx.fillRect(X,H-24,1,5);ctx.fillText(f,X-9,H-8)});
+    [[1,p.acc],[2,p.acc2]].forEach(([i,col])=>{
+      for(const r of data.rows){const a=Math.max(lo,r[0]-data.bw/2),b=Math.min(hi,r[0]+data.bw/2);if(b<=a)continue;const X=fx(a),Wd=Math.max(1,fx(b)-fx(a)-(data.bw>2?1:0));if(i===1){ctx.fillStyle=col;ctx.globalAlpha=.5;ctx.fillRect(X,fy(r[i]),Wd,fy(0)-fy(r[i]));ctx.globalAlpha=1}else{ctx.strokeStyle=col;ctx.lineWidth=data.bw>2?2:1.2;ctx.strokeRect(X+1,fy(r[i]),Math.max(1,Wd-2),fy(0)-fy(r[i]))}}});ctx.lineWidth=1;
+    [[f1,p.acc],[f2,p.acc2]].forEach(([f,c])=>{ctx.strokeStyle=c;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(fx(f),10);ctx.lineTo(fx(f),H-26);ctx.stroke()});ctx.setLineDash([])};
+  let tm;ctl.querySelector('#bnN').oninput=()=>{clearTimeout(tm);tm=setTimeout(upd,60)};upd();
+};
+
+WID.results=w=>{
+  head(w,'재분석 결과','얼마나 낮아졌을까?');
+  const cv=canvasIn(w,'16/10');
+  w.appendChild(el('p',{class:'note'},'막대: 실제로 낮아진 정도(5번 평균) · 작은 점: 녹음 하나하나 · 검은 마름모: 이론값 · 아래쪽 점: 벽 반사음'));
+  const keys=['800-1','800-2','1000-1','1000-2','1200-1','1200-2'];
+  cv.draw=()=>{const {ctx,w:W,h:H}=cv;if(!W)return;const p=pal(w);ctx.clearRect(0,0,W,H);
+    const top=8,bot=H-34,y0=v=>bot-(v+4)/(12)*(bot-top),gw=(W-40)/6;
+    ctx.strokeStyle=p.line;ctx.fillStyle=p.muted;ctx.font='10px '+css(w,'--f-mono');
+    [-4,0,2,4,6,8].forEach(v=>{const Y=y0(v);ctx.beginPath();ctx.moveTo(34,Y);ctx.lineTo(W,Y);ctx.stroke();ctx.fillText(v+'Hz',0,Y+3)});
+    keys.forEach((k,i)=>{const [f,s]=k.split('-');const base=DOP.base[f],vals=DOP.rec[k].map(v=>base-v),c=V_SOUND,th=base*(+s)/c;
+      const down=vals.filter(v=>v>0),mean=down.reduce((a,b)=>a+b,0)/down.length,X=40+gw*i+gw*.5;
+      ctx.fillStyle=p.acc;ctx.globalAlpha=.8;ctx.fillRect(X-gw*.28,y0(mean),gw*.56,y0(0)-y0(mean));ctx.globalAlpha=1;
+      vals.forEach((v,j)=>{ctx.fillStyle=v<0?p.acc2:p.ink;ctx.beginPath();ctx.arc(X-gw*.2+j*gw*.1,y0(v),v<0?4:2.4,0,7);ctx.fill()});
+      ctx.fillStyle=p.ink;ctx.beginPath();const Y=y0(th);ctx.moveTo(X,Y-6);ctx.lineTo(X+6,Y);ctx.lineTo(X,Y+6);ctx.lineTo(X-6,Y);ctx.fill();
+      ctx.fillStyle=p.muted;ctx.font='11px '+css(w,'--f-mono');ctx.fillText(`${f}Hz`,X-16,H-18);ctx.fillText(`${s}m/s`,X-14,H-5)});
+    ctx.fillStyle=p.acc2;ctx.font='11px '+css(w,'--f-body');ctx.fillText('벽 반사음 (더 높아짐)',40+gw*4+4,y0(-3.1)+16)};
+};
+
+const FIG={
+reflect:`<svg viewBox="0 0 560 200" role="img" aria-label="스피커, 나, 벽 사이를 오가는 소리 그림">
+<rect x="0" y="0" width="560" height="200" rx="10" style="fill:var(--tint)"/>
+<rect x="520" y="20" width="16" height="160" style="fill:var(--muted)"/><text x="512" y="196" font-size="13" text-anchor="end" style="fill:var(--muted);font-family:var(--f-body)">앞쪽 벽</text>
+<circle cx="60" cy="100" r="16" style="fill:var(--acc)"/><text x="60" y="140" text-anchor="middle" font-size="13" style="fill:var(--ink);font-family:var(--f-body)">스피커</text>
+<circle cx="300" cy="100" r="14" style="fill:var(--acc2)"/><text x="300" y="138" text-anchor="middle" font-size="14" style="fill:var(--ink);font-family:var(--f-disp)">나 →</text>
+<path d="M90 80 L270 80" style="stroke:var(--acc);stroke-width:3;fill:none" marker-end="url(#ar1)"/><text x="180" y="70" text-anchor="middle" font-size="13" style="fill:var(--acc);font-family:var(--f-body)">뒤에서 쫓아오는 소리 → 낮게</text>
+<path d="M90 120 L505 120" style="stroke:var(--acc2);stroke-width:2;fill:none;stroke-dasharray:5 5"/>
+<path d="M505 160 L330 160" style="stroke:var(--acc2);stroke-width:3;fill:none" marker-end="url(#ar2)"/><text x="420" y="185" text-anchor="middle" font-size="13" style="fill:var(--acc2);font-family:var(--f-body)">벽에서 튕겨 오는 소리 → 높게</text>
+<defs><marker id="ar1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" style="fill:var(--acc)"/></marker><marker id="ar2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" style="fill:var(--acc2)"/></marker></defs></svg>`,
+redshift:(()=>{const lines=[0.22,0.41,0.63,0.79];const band=(y,shift,label)=>{let s=`<text x="0" y="${y+20}" font-size="13" style="fill:var(--ink);font-family:var(--f-body)">${label}</text><rect x="110" y="${y}" width="440" height="30" rx="4" fill="url(#rb)"/>`;lines.forEach(l=>{const x=110+440*(l+shift);s+=`<rect x="${x.toFixed(1)}" y="${y}" width="4" height="30" fill="#111"/>`});return s};
+ return `<svg viewBox="0 0 560 150" role="img" aria-label="정지, 멀어지는, 다가오는 별의 빛 띠 비교"><defs><linearGradient id="rb"><stop offset="0" stop-color="#5b3fd1"/><stop offset=".25" stop-color="#2f7de1"/><stop offset=".45" stop-color="#2fbf71"/><stop offset=".62" stop-color="#f2d42e"/><stop offset=".8" stop-color="#f08a24"/><stop offset="1" stop-color="#d6332a"/></linearGradient></defs>${band(4,0,'가만히 있는 별')}${band(56,0.12,'멀어지는 별')}${band(108,-0.1,'다가오는 별')}</svg>`})()
+};
+
+/* ================= GD WIDGETS ================= */
+const MAP={m0:-150,m1:1350,b0:-650,b1:450};
+function miniPlot(cv,p,m,b,opts={}){const {ctx,w:W,h:H}=cv;if(!W)return;ctx.clearRect(0,0,W,H);
+  const yr0=1900,yr1=2025,v0=opts.v0??-200,v1=opts.v1??750,X=y=>28+(y-yr0)/(yr1-yr0)*(W-34),Y=v=>H-16-(v-v0)/(v1-v0)*(H-24);
+  ctx.strokeStyle=p.line;ctx.beginPath();ctx.moveTo(28,Y(0));ctx.lineTo(W,Y(0));ctx.stroke();
+  ctx.fillStyle=p.muted;ctx.font='10px '+css(document.body,'--f-mono');[1920,1960,2000].forEach(y=>ctx.fillText(y,X(y)-12,H-3));[0,300,600].forEach(v=>ctx.fillText(v,0,Y(v)+3));
+  ctx.fillStyle=p.ink;for(let i=0;i<N;i++){ctx.beginPath();ctx.arc(X(YEARS[i]),Y(CO2[i]),opts.r||1.8,0,7);ctx.fill()}
+  if(m!==null){ctx.strokeStyle=p.acc;ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(X(1905),Y(b));ctx.lineTo(X(2021),Y(m+b));ctx.stroke();ctx.lineWidth=1}
+  return{X,Y}}
+
+WID.fit=w=>{
+  head(w,'직접 해 보기','직선 맞추기 게임');
+  const cv=canvasIn(w,'4/3');
+  const sc=el('div',{class:'grid2'},`<div><div class="note">지금 오차 점수</div><div class="big" id="ftE">-</div></div><div><div class="note">내 최고 기록 (컴퓨터 정답 ${fmt(OPT.e,0)})</div><div class="big" id="ftB" style="color:var(--muted)">-</div></div>`);w.appendChild(sc);
+  const row=el('div',{class:'row'},`<button class="btn" id="ftSq">오차를 사각형으로 보기</button><button class="btn" id="ftAns">컴퓨터 정답 보기</button><button class="btn" id="ftR">처음으로</button>`);w.appendChild(row);
+  const msg=el('div',{class:'msg'},'파란 손잡이(양 끝 동그라미)를 위아래로 끌어 보세요.');w.appendChild(msg);
+  let y1=0,y2=300,best=Infinity,sq=false,ans=false,drag=null;
+  const E=sc.querySelector('#ftE'),B=sc.querySelector('#ftB');
+  row.querySelector('#ftSq').onclick=e=>{sq=!sq;e.target.classList.toggle('on',sq);cv.draw()};
+  row.querySelector('#ftAns').onclick=e=>{ans=!ans;e.target.classList.toggle('on',ans);cv.draw()};
+  row.querySelector('#ftR').onclick=()=>{y1=0;y2=300;best=Infinity;B.textContent='-';cv.draw()};
+  let geo;
+  cv.draw=()=>{const p=pal(w);geo=miniPlot(cv,p,null,0,{r:2.4});if(!geo)return;const {ctx}=cv,{X,Y}=geo;const m=y2-y1,b=y1;
+    if(sq){ctx.fillStyle=p.acc2;ctx.globalAlpha=.16;ctx.strokeStyle=p.acc2;for(let i=0;i<N;i+=2){const pr=m*XN[i]+b,y=CO2[i],a=Y(y),c=Y(pr),s=Math.abs(a-c);ctx.fillRect(X(YEARS[i]),Math.min(a,c),s,s)}ctx.globalAlpha=1}
+    if(ans){ctx.strokeStyle=p.ink;ctx.setLineDash([6,5]);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X(1905),Y(OPT.b));ctx.lineTo(X(2021),Y(OPT.m+OPT.b));ctx.stroke();ctx.setLineDash([]);ctx.lineWidth=1}
+    ctx.strokeStyle=p.acc;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(X(1905),Y(y1));ctx.lineTo(X(2021),Y(y2));ctx.stroke();ctx.lineWidth=1;
+    [[1905,y1],[2021,y2]].forEach(([yr,v])=>{ctx.fillStyle='#2f6fd6';ctx.beginPath();ctx.arc(X(yr),Y(v),9,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(X(yr),Y(v),3.5,0,7);ctx.fill()});
+    const e=mse(m,b);E.textContent=fmt(e,0);if(e<best){best=e;B.textContent=fmt(best,0)}
+    const r=e/OPT.e;msg.textContent=r<1.02?'와! 컴퓨터 정답과 거의 같아요.':r<1.3?'아주 잘 맞췄어요. 조금만 더!':r<3?'점들의 가운데를 지나도록 해 보세요.':'파란 손잡이(양 끝 동그라미)를 위아래로 끌어 보세요.'};
+  const inv=yv=>{const H=cv.h;return -200+(H-16-yv)/(H-24)*950};
+  cv.c.addEventListener('pointerdown',e=>{if(!geo)return;const r=cv.c.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+    const d1=Math.hypot(x-geo.X(1905),y-geo.Y(y1)),d2=Math.hypot(x-geo.X(2021),y-geo.Y(y2));drag=d1<d2?1:2;if(Math.min(d1,d2)>60){drag=x<cv.w/2?1:2}cv.c.setPointerCapture(e.pointerId);move(e)});
+  const move=e=>{if(!drag)return;const r=cv.c.getBoundingClientRect(),v=Math.max(-200,Math.min(750,inv(e.clientY-r.top)));if(drag===1)y1=v;else y2=v;cv.draw()};
+  cv.c.addEventListener('pointermove',move);cv.c.addEventListener('pointerup',()=>drag=null);cv.c.addEventListener('pointercancel',()=>drag=null);
+};
+
+WID.lrs=w=>{
+  head(w,'우리 탐구 다시 보기','보폭 7가지, 1000걸음씩');
+  const tabs=el('div',{class:'row'},`<button class="btn on" data-v="e">오차 점수</button><button class="btn" data-v="m">m</button><button class="btn" data-v="b">b</button>`);w.appendChild(tabs);
+  const cv=canvasIn(w,'16/10');
+  const LRS=[0.0001,0.0005,0.001,0.005,0.01,0.05,0.1];const COL=['#9aa7b0','#c9a227','#6b9e3f','#2a8f86','#3c6fc4','#8a4fbf','#d2462a'];
+  const lg=el('div',{class:'row'});w.appendChild(lg);let hi=-1,view='e';
+  LRS.forEach((v,i)=>{const b=el('button',{class:'btn',style:`border-color:${COL[i]};color:${COL[i]}`},String(v));b.onclick=()=>{hi=hi===i?-1:i;cv.draw()};lg.appendChild(b)});
+  const runs=LRS.map(lr=>{let m=0,b=0;const e=[],ms=[],bs=[];for(let k=0;k<1000;k++){const [dm,db]=grad(m,b);m-=lr*dm;b-=lr*db;e.push(mse(m,b));ms.push(m);bs.push(b)}return{e,m:ms,b:bs}});
+  const out=el('div',{class:'stat'},`보폭 0.1의 1000번째 오차 점수: ${runs[6].e[999].toFixed(9)} (보고서: 12533.334131547)`);w.appendChild(out);
+  tabs.querySelectorAll('button').forEach(b=>b.onclick=()=>{view=b.dataset.v;tabs.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));cv.draw()});
+  cv.draw=()=>{const {ctx,w:W,h:H}=cv;if(!W)return;const p=pal(w);ctx.clearRect(0,0,W,H);
+    const rng=view==='e'?[10000,78000]:view==='m'?[-20,700]:[-190,110];const X=i=>40+i/999*(W-48),Y=v=>H-20-(v-rng[0])/(rng[1]-rng[0])*(H-30);
+    ctx.fillStyle=p.muted;ctx.font='10px '+css(w,'--f-mono');ctx.strokeStyle=p.line;
+    const ticks=view==='e'?[20000,40000,60000]:view==='m'?[0,200,400,600]:[-150,-50,0,50,100];ticks.forEach(v=>{ctx.beginPath();ctx.moveTo(40,Y(v));ctx.lineTo(W,Y(v));ctx.stroke();ctx.fillText(v,0,Y(v)+3)});
+    [0,500,1000].forEach(v=>ctx.fillText(v,X(Math.min(999,v))-8,H-6));
+    runs.forEach((r,i)=>{ctx.strokeStyle=COL[i];ctx.globalAlpha=hi<0||hi===i?1:.15;ctx.lineWidth=hi===i?3:1.8;ctx.beginPath();r[view].forEach((v,k)=>k?ctx.lineTo(X(k),Y(v)):ctx.moveTo(X(k),Y(v)));ctx.stroke()});ctx.globalAlpha=1;ctx.lineWidth=1;
+    if(view==='b'){ctx.fillStyle=p.ink;ctx.font='12px '+css(w,'--f-body');ctx.fillText('올라갔다가 내려와요',X(120),Y(100)-4)}};
+};
+
+/* ---------- side-view valley (1D) ---------- */
+function drawValley(cv,p,f,x0,x1,opts){const {ctx,w:W,h:H}=cv;if(!W)return null;ctx.clearRect(0,0,W,H);
+  const n=160,xs=[],ys=[];for(let i=0;i<=n;i++){const x=x0+(x1-x0)*i/n;xs.push(x);ys.push(f(x))}
+  const lo=Math.min(...ys),hi=opts.hi??Math.max(...ys);const top=opts.top??H*0.12,bot=H-18;
+  const X=x=>(x-x0)/(x1-x0)*W,Y=v=>bot-(Math.min(v,hi*1.4)-lo)/(hi-lo)*(bot-top)*0.92;
+  const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#f8f1e6');sky.addColorStop(1,'#f2dcc6');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#ffb38a';ctx.globalAlpha=.7;ctx.beginPath();ctx.arc(W*0.86,H*0.2,Math.min(W,H)*0.07,0,7);ctx.fill();ctx.globalAlpha=1;
+  ctx.fillStyle='#ecc9ad';ctx.beginPath();ctx.moveTo(0,H);for(let i=0;i<=40;i++){const x=i/40*W;ctx.lineTo(x,H*0.55-Math.sin(i*0.5)*H*0.05-Math.sin(i*0.17)*H*0.06)}ctx.lineTo(W,H);ctx.fill();
+  ctx.fillStyle=p.acc;ctx.beginPath();ctx.moveTo(0,H);xs.forEach((x,i)=>ctx.lineTo(X(x),Y(ys[i])));ctx.lineTo(W,H);ctx.closePath();ctx.fill();
+  return{X,Y}}
+function hiker(ctx,x,y,p,ang=0){ctx.save();ctx.translate(x,y);ctx.rotate(ang);ctx.fillStyle=p.acc2;
+  ctx.fillRect(-2,-30,4,22);ctx.beginPath();ctx.arc(0,-36,7,0,7);ctx.fill();ctx.lineWidth=3;ctx.strokeStyle=p.acc2;ctx.beginPath();ctx.moveTo(0,-10);ctx.lineTo(-7,0);ctx.moveTo(0,-10);ctx.lineTo(7,0);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,-24);ctx.lineTo(10,-16);ctx.stroke();ctx.restore()}
+
+WID.fog=w=>{
+  head(w,'직접 해 보기','안개 속 하산 게임');
+  w.appendChild(el('p',{class:'note'},'산이 안개에 가려 있어요. 발밑이 어느 쪽으로 기울었는지만 보고 걸어서 골짜기 바닥까지 내려가세요. (지금은 기울기 m만 바꿔요. b는 정답에 고정했어요.)'));
+  const cv=canvasIn(w,'16/9');
+  const row=el('div',{class:'row'},`<button class="btn primary" id="fgL">◀ 왼쪽으로 한 걸음</button><button class="btn primary" id="fgR">오른쪽으로 한 걸음 ▶</button>`);w.appendChild(row);
+  const row2=el('div',{class:'row'},`<span class="note">보폭</span><button class="btn" data-s="30">작게</button><button class="btn on" data-s="100">보통</button><button class="btn" data-s="250">크게</button><button class="btn" id="fgShow">안개 걷기</button><button class="btn" id="fgRe">처음부터</button>`);w.appendChild(row2);
+  const info=el('div',{class:'grid2'},`<div><div class="note">발밑 느낌</div><div class="big" id="fgFeel" style="font-size:19px">-</div></div><div><div class="note">오차 점수 · 걸음 수</div><div class="big" id="fgE" style="font-size:19px">-</div></div>`);w.appendChild(info);
+  const mini=canvasIn(w,'16/5');const msg=el('div',{class:'msg'});w.appendChild(msg);
+  const f=m=>mse(m,OPT.b),x0=-350,x1=1650;let m=0,step=100,steps=0,show=false,trail=[0];
+  const FE=info.querySelector('#fgFeel'),EE=info.querySelector('#fgE');
+  row2.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{step=+b.dataset.s;row2.querySelectorAll('[data-s]').forEach(x=>x.classList.toggle('on',x===b))});
+  row2.querySelector('#fgShow').onclick=e=>{show=!show;e.target.classList.toggle('on',show);e.target.textContent=show?'안개 덮기':'안개 걷기';draw()};
+  row2.querySelector('#fgRe').onclick=()=>{m=0;steps=0;trail=[0];draw()};
+  const go=d=>{m=Math.max(x0+20,Math.min(x1-20,m+d*step));steps++;trail.push(m);draw()};
+  row.querySelector('#fgL').onclick=()=>go(-1);row.querySelector('#fgR').onclick=()=>go(1);
+  function draw(){const p=pal(w);const g=drawValley(cv,p,f,x0,x1,{});if(!g)return;const {ctx,w:W,h:H}=cv;
+    const hx=g.X(m),hy=g.Y(f(m));const slope=(f(m+1)-f(m-1))/2;
+    trail.forEach(t=>{ctx.fillStyle='#fff';ctx.globalAlpha=.8;ctx.beginPath();ctx.arc(g.X(t),g.Y(f(t))-2,3,0,7);ctx.fill()});ctx.globalAlpha=1;
+    if(!show){const gr=ctx.createRadialGradient(hx,hy-20,40,hx,hy-20,Math.max(W,H)*0.28);gr.addColorStop(0,'rgba(240,236,228,0)');gr.addColorStop(.35,'rgba(240,236,228,.9)');gr.addColorStop(1,'rgba(240,236,228,.99)');ctx.fillStyle=gr;ctx.fillRect(0,0,W,H)}
+    else{ctx.fillStyle=p.ink;ctx.font='13px '+css(w,'--f-body');const bx=g.X(OPT.m);ctx.fillText('바닥 ▼',bx-20,g.Y(f(OPT.m))-12)}
+    const ang=Math.atan2(g.Y(f(m+5))-g.Y(f(m-5)),g.X(m+5)-g.X(m-5));hiker(ctx,hx,hy,p,ang*0.6);
+    const s=Math.abs(slope);FE.textContent=s<3?'평평해요!':(slope<0?'오른쪽이 내리막 ↘':'왼쪽이 내리막 ↙')+(s>250?' (아주 가파름)':s>60?' (가파름)':' (살짝)');
+    const e=f(m);EE.textContent=fmt(e,0)+' · '+steps+'걸음';miniPlot(mini,p,m,OPT.b,{v0:-300,v1:800});
+    msg.textContent=e<OPT.e*1.01?`골짜기 바닥 도착! ${steps}걸음 만에 찾았어요.`:''}
+  cv.draw=mini.draw=draw;
+};
+
+WID.practice=w=>{
+  head(w,'직접 해 보기','보폭 연습장');
+  w.appendChild(el('p',{class:'note'},'간단한 연습용 골짜기예요. 보폭을 바꾸고 ▶를 눌러 보세요. 흰 점은 공이 한 걸음마다 지나간 자리예요. 걸음 수는 아래에 나와요.'));
+  const cv=canvasIn(w,'16/9');
+  const ctl=el('div',{class:'row'},`<label for="prLr">보폭 <input type="range" id="prLr" min="0.02" max="0.95" step="0.01" value="0.2"></label><span class="stat" id="prL"></span>`);w.appendChild(ctl);
+  const q=el('div',{class:'row'},`${[[0.05,'아주 작게'],[0.2,'적당히'],[0.5,'딱 맞게'],[0.85,'크게']].map(([v,l])=>`<button class="btn" data-lr="${v}">${l}</button>`).join('')}`);w.appendChild(q);
+  const row=el('div',{class:'row'},`<button class="btn primary" id="prGo">▶ 굴리기</button><button class="btn" id="prRe">처음으로</button><span class="stat" id="prS"></span>`);w.appendChild(row);
+  const msg=el('div',{class:'msg'});w.appendChild(msg);
+  const LR=ctl.querySelector('#prLr'),LL=ctl.querySelector('#prL'),SS=row.querySelector('#prS'),GO=row.querySelector('#prGo');
+  const f=x=>x*x,X0=-0.9;let pts=[X0],born=[performance.now()],anim=null;
+  const lab=()=>{LL.textContent=(+LR.value).toFixed(2)};LR.oninput=()=>{lab();reset()};lab();
+  q.querySelectorAll('[data-lr]').forEach(b=>b.onclick=()=>{LR.value=b.dataset.lr;lab();reset()});
+  function reset(){pts=[X0];born=[performance.now()];anim=null;GO.textContent='▶ 굴리기';msg.textContent='';draw()}
+  row.querySelector('#prRe').onclick=reset;
+  GO.onclick=()=>{if(anim){anim.paused=!anim.paused;GO.textContent=anim.paused?'▶ 굴리기':'⏸ 멈춤';return}msg.textContent='';anim={t:0};const lr=+LR.value,x=pts[pts.length-1];if(Math.abs(x)<0.003){reset();anim={t:0}}const y=pts[pts.length-1];pts.push(y-lr*2*y);born.push(performance.now());GO.textContent='⏸ 멈춤'};
+  function draw(prog=1){const p=pal(w);const g=drawValley(cv,p,f,-1.25,1.25,{hi:1.25*1.25,top:cv.h*0.18});if(!g)return;const {ctx}=cv;const now=performance.now();
+    const n=pts.length;pts.forEach((x,i)=>{if(i===n-1)return;const age=(now-(born[i]||now))/1000,al=Math.max(0,1-Math.max(0,age-1.5)/1.5);if(al<=0)return;ctx.fillStyle='#fff';ctx.globalAlpha=.9*al;ctx.beginPath();ctx.arc(g.X(x),g.Y(f(x))-4,3.5,0,7);ctx.fill();ctx.globalAlpha=1});
+    let cur=pts[n-1];if(anim&&n>1&&prog<1){const a=pts[n-2],x=a+(cur-a)*prog;ball(ctx,g.X(x),g.Y(f(x))-8,p)}
+    else ball(ctx,g.X(cur),g.Y(f(cur))-8,p);
+    SS.textContent=`${Math.max(0,n-1-(anim&&prog<1?1:0))}걸음 · 높이 ${fmt(f(cur),3)}`}
+  function ball(ctx,x,y,p){ctx.fillStyle=p.acc2;ctx.beginPath();ctx.arc(x,y,9,0,7);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();ctx.lineWidth=1}
+  cv.draw=()=>draw();let last=0;
+  TICKERS.add(t=>{if(!visible(w)){last=t;return}if(!anim){last=t;if(born.some(b=>t-b<3200))draw();return}const dt=(t-(last||t))/1000;last=t;if(anim.paused){draw(anim.t);return}anim.t+=dt*2.4;
+    if(anim.t>=1){const lr=+LR.value,x=pts[pts.length-1];
+      if(Math.abs(x)<0.003){anim=null;GO.textContent='▶ 굴리기';msg.textContent=`바닥 도착! ${pts.length-1}걸음 걸렸어요.`+(lr>0.5?' 바닥을 지나쳐 반대편으로 갔다가 돌아오면서 내려갔어요.':'');draw();return}
+      if(pts.length>60){anim=null;GO.textContent='▶ 굴리기';msg.textContent='60걸음을 걸었는데 아직 바닥이 아니에요. 보폭이 너무 작아요.';draw();return}
+      anim.t-=1;pts.push(x-lr*2*x);born.push(performance.now())}
+    draw(anim?anim.t:1)});
+};
+
+/* ---------- 3D valley ---------- */
+function Surf3D(w,cv,f,range,opts={}){
+  const st={yaw:-0.75,pitch:0.95,path:[],Gm:opts.gm||34,Gb:opts.gb||34};
+  const emin=opts.emin??OPT.e,ecap=(opts.ecap??(mse(0,0)-OPT.e)*1.7);
+  const zOf=e=>Math.min(1.05,Math.sqrt(Math.max(0,e-emin)/ecap));
+  const grid=[];for(let j=0;j<=st.Gb;j++){const row=[];for(let i=0;i<=st.Gm;i++){const m=range.m0+(range.m1-range.m0)*i/st.Gm,b=range.b0+(range.b1-range.b0)*j/st.Gb;row.push(zOf(f(m,b)))}grid.push(row)}
+  const UV=(m,b)=>[(m-range.m0)/(range.m1-range.m0)*2-1,(b-range.b0)/(range.b1-range.b0)*2-1];
+  function proj(u,v,z){const {w:W,h:H}=cv;const S=Math.min(W*0.36,H*0.62);const c=Math.cos(st.yaw),s=Math.sin(st.yaw);const x=u*c-v*s,y=u*s+v*c;
+    return[W/2+x*S,H*0.5+y*S*Math.cos(st.pitch)-z*S*Math.sin(st.pitch)*0.5,y]}
+  st.render=()=>{const {ctx,w:W,h:H}=cv;if(!W)return;const p=pal(w);ctx.clearRect(0,0,W,H);
+    const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#f8f1e6');sky.addColorStop(1,'#f0dcc8');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+    const q=[];const Gm=st.Gm,Gb=st.Gb;
+    for(let j=0;j<Gb;j++)for(let i=0;i<Gm;i++){const u0=i/Gm*2-1,u1=(i+1)/Gm*2-1,v0=j/Gb*2-1,v1=(j+1)/Gb*2-1,z=[grid[j][i],grid[j][i+1],grid[j+1][i+1],grid[j+1][i]];
+      const P=[proj(u0,v0,z[0]),proj(u1,v0,z[1]),proj(u1,v1,z[2]),proj(u0,v1,z[3])];const d=(P[0][2]+P[1][2]+P[2][2]+P[3][2])/4;
+      const zm=(z[0]+z[1]+z[2]+z[3])/4,sh=((z[1]-z[0])+(z[2]-z[3]))*Math.cos(st.yaw)*4-((z[3]-z[0])+(z[2]-z[1]))*Math.sin(st.yaw)*4;q.push({P,d,zm,sh})}
+    q.sort((a,b)=>a.d-b.d);
+    for(const t of q){const k=Math.min(1,t.zm),l=Math.max(-.25,Math.min(.25,t.sh));
+      const r=Math.round(150+(245-150)*k+l*120),g=Math.round(48+(226-48)*k+l*110),b=Math.round(18+(205-18)*k+l*100);
+      ctx.fillStyle=`rgb(${r},${g},${b})`;ctx.beginPath();t.P.forEach((pt,i)=>i?ctx.lineTo(pt[0],pt[1]):ctx.moveTo(pt[0],pt[1]));ctx.closePath();ctx.fill();if(Gm*Gb<2000){ctx.strokeStyle='rgba(90,35,16,.18)';ctx.stroke()}else{ctx.strokeStyle=ctx.fillStyle;ctx.stroke()}}
+    if(st.path.length){ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.beginPath();st.path.forEach((pt,i)=>{const [u,v]=UV(pt.m,pt.b);const uc=Math.max(-1.2,Math.min(1.2,u)),vc=Math.max(-1.2,Math.min(1.2,v));const P=proj(uc,vc,zOf(f(pt.m,pt.b))+0.02);i?ctx.lineTo(P[0],P[1]):ctx.moveTo(P[0],P[1])});ctx.stroke();ctx.lineWidth=1;
+      const L=st.path[st.path.length-1];const [u,v]=UV(L.m,L.b);const P=proj(Math.max(-1.2,Math.min(1.2,u)),Math.max(-1.2,Math.min(1.2,v)),zOf(f(L.m,L.b))+0.03);
+      ctx.fillStyle=p.acc2;ctx.beginPath();ctx.arc(P[0],P[1],8,0,7);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();ctx.lineWidth=1}
+    if(opts.mark!==false){const [u,v]=UV(opts.opt.m,opts.opt.b);const P=proj(u,v,0);ctx.fillStyle=p.ink;ctx.font='12px '+css(w,'--f-body');ctx.fillText('▼ 바닥',P[0]-18,P[1]-10)}
+    ctx.fillStyle=p.muted;ctx.font='11px '+css(w,'--f-body');ctx.fillText('끌어서 돌려 보세요',8,H-8)};
+  let drag=null;cv.c.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,yaw:st.yaw,pitch:st.pitch};cv.c.setPointerCapture(e.pointerId)});
+  cv.c.addEventListener('pointermove',e=>{if(!drag)return;st.yaw=drag.yaw+(e.clientX-drag.x)*0.01;st.pitch=Math.max(0.35,Math.min(1.35,drag.pitch-(e.clientY-drag.y)*0.006));st.render()});
+  const end=()=>drag=null;cv.c.addEventListener('pointerup',end);cv.c.addEventListener('pointercancel',end);
+  cv.draw=st.render;return st}
+
+WID.view3d=w=>{
+  head(w,'둘러보기','오차 점수 산');
+  const cv=canvasIn(w,'16/10');
+  w.appendChild(el('p',{class:'note'},'가로·세로는 기울기 m과 절편 b, 높이는 오차 점수예요. 가장 낮은 곳의 m과 b가 가장 잘 맞는 직선이에요.'));
+  const s=Surf3D(w,cv,mse,MAP,{opt:OPT});s.path=[{m:0,b:0}];
+  w.appendChild(el('p',{class:'note'},'주황 공: 처음 출발하는 곳 (m = 0, b = 0). 이곳의 직선은 바닥에 붙은 가로줄이라 오차 점수가 아주 커요.'));
+};
+
+WID.play=w=>{
+  head(w,'직접 해 보기','진짜 골짜기에서 굴려 보기');
+  const cv=canvasIn(w,'16/10');const s=Surf3D(w,cv,mse,MAP,{opt:OPT});
+  const ctl=el('div',{class:'row'},`<label for="plLr">보폭 <input type="range" id="plLr" min="0" max="1" step="0.001" value="0.75"></label><span class="stat" id="plLrL"></span>`);w.appendChild(ctl);
+  const q=el('div',{class:'row'},`<span class="note">바로 고르기</span>${[0.001,0.01,0.1,0.5,0.7].map(v=>`<button class="btn" data-lr="${v}">${v}</button>`).join('')}`);w.appendChild(q);
+  const row=el('div',{class:'row'},`<button class="btn primary" id="plGo">▶ 출발</button><button class="btn" id="plStep">한 걸음</button><button class="btn" id="plClr">처음으로</button><span class="stat" id="plS"></span>`);w.appendChild(row);
+  const mini=canvasIn(w,'16/5');const msg=el('div',{class:'msg'});w.appendChild(msg);
+  const LR=ctl.querySelector('#plLr'),LRL=ctl.querySelector('#plLrL'),S=row.querySelector('#plS'),GO=row.querySelector('#plGo');
+  const lrv=()=>Math.pow(10,-4+3.845*(+LR.value));const setLr=v=>{LR.value=((Math.log10(v)+4)/3.845).toFixed(3);lab()};
+  const lab=()=>{const v=lrv();LRL.textContent=v<0.01?v.toFixed(4):v.toFixed(3)};LR.oninput=lab;setLr(0.1);
+  q.querySelectorAll('[data-lr]').forEach(b=>b.onclick=()=>{setLr(+b.dataset.lr);clr()});
+  let pos,run=false,dead=false;
+  function clr(){pos={m:0,b:0};s.path=[{...pos}];dead=false;run=false;GO.textContent='▶ 출발';msg.textContent='';drawAll()}
+  function one(){if(dead)return;const lr=lrv(),[dm,db]=grad(pos.m,pos.b);pos={m:pos.m-lr*dm,b:pos.b-lr*db};s.path.push({...pos});if(s.path.length>3000)s.path.splice(1,1);
+    if(!isFinite(pos.m)||Math.abs(pos.m)>1e6){dead=true;run=false;GO.textContent='▶ 출발';msg.textContent='튕겨 나갔어요! 보폭이 너무 커서 골짜기 양쪽을 오가며 점점 높이 올라갔어요.'}}
+  GO.onclick=()=>{run=!run;GO.textContent=run?'⏸ 멈춤':'▶ 출발'};row.querySelector('#plStep').onclick=()=>{one();drawAll()};row.querySelector('#plClr').onclick=clr;
+  function drawAll(){s.render();const p=pal(w);const e=mse(pos.m,pos.b);S.textContent=`${s.path.length-1}걸음 · 오차 점수 ${isFinite(e)&&e<1e12?fmt(e,0):'∞'}`;miniPlot(mini,p,dead?null:pos.m,pos.b,{v0:-300,v1:800});
+    if(!dead&&e-OPT.e<0.15&&s.path.length>1){if(run){run=false;GO.textContent='▶ 출발'}msg.textContent=`바닥 도착! ${s.path.length-1}걸음 만에 오차 점수가 바닥(${fmt(OPT.e,0)})과 같아졌어요.`}
+    else if(!dead&&!run&&s.path.length>2400)msg.textContent='2,400걸음을 걸었는데 아직 내려가는 중이에요. 보폭이 작아서 오래 걸려요.';else if(!dead&&run)msg.textContent=''}
+  cv.draw=mini.draw=drawAll;clr();
+  TICKERS.add(()=>{if(!run||!visible(w))return;const lr=lrv(),k=lr<0.003?40:lr<0.03?8:1;for(let i=0;i<k&&run;i++)one();if(s.path.length>2400&&!dead){run=false;GO.textContent='▶ 출발'}drawAll()});
+};
+
+WID.norm=w=>{
+  head(w,'직접 해 보기','정규화 스위치');
+  const tabs=el('div',{class:'row'},`<button class="btn" data-v="raw">연도 그대로 (1905~2021)</button><button class="btn on" data-v="n">0~1로 줄이기</button>`);w.appendChild(tabs);
+  const hostN=el('div'),hostR=el('div');hostR.hidden=true;w.append(hostN,hostR);
+  const out=el('div',{class:'stat'});w.appendChild(out);
+  let R={sx:0,sxx:0,sy:0,sxy:0,syy:0};for(let i=0;i<N;i++){const x=YEARS[i],y=CO2[i];R.sx+=x;R.sxx+=x*x;R.sy+=y;R.sxy+=x*y;R.syy+=y*y}
+  const mseR=(m,b)=>{let t=0;for(let i=0;i<N;i++){const r=m*YEARS[i]+b-CO2[i];t+=r*r}return t/N};
+  const gradR=(m,b)=>[2/N*(m*R.sxx+b*R.sx-R.sxy),2/N*(m*R.sx+N*b-R.sy)];
+  const optR={m:OPT.m/116,b:OPT.b-OPT.m*1905/116};
+  const RANGE_R={m0:-1.3,m1:11.6,b0:-23000,b1:3000};
+  function runGD(gf,lr){let m=0,b=0;const pts=[{m,b}];for(let k=0;k<1000;k++){const [a,c]=gf(m,b);m-=lr*a;b-=lr*c;if(k%5===4)pts.push({m,b})}return pts}
+  const cvN=canvasIn(hostN,'16/10'),cvR=canvasIn(hostR,'16/10');
+  const sN=Surf3D(w,cvN,mse,MAP,{opt:OPT}),sR=Surf3D(w,cvR,mseR,RANGE_R,{opt:optR});
+  sN.path=runGD(grad,0.79*0.9);sR.path=runGD(gradR,2.594e-7*0.9);
+  const eN=mse(sN.path.at(-1).m,sN.path.at(-1).b),eR=mseR(sR.path.at(-1).m,sR.path.at(-1).b);
+  function txt(v){out.innerHTML=v==='n'?`넓고 둥근 골짜기 · 튕겨 나가지 않는 최대 보폭 <b>약 0.79</b><br>그 90% 보폭으로 1000걸음 → 오차 점수 <b>${fmt(eN,0)}</b> (바닥 ${fmt(OPT.e,0)})`
+    :`좁고 긴 협곡 · 튕겨 나가지 않는 최대 보폭 <b>약 0.00000026</b><br>그 90% 보폭으로 1000걸음 → 오차 점수 <b>${fmt(eR,0)}</b> (바닥 ${fmt(OPT.e,0)})`}
+  tabs.querySelectorAll('button').forEach(b=>b.onclick=()=>{const v=b.dataset.v;tabs.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));hostN.hidden=v!=='n';hostR.hidden=v==='n';txt(v);(v==='n'?sN:sR).render()});
+  txt('n');
+};
+
+WID.final=w=>{
+  head(w,'결과','찾은 직선과 실제 데이터');
+  const cv=canvasIn(w,'16/10');
+  cv.draw=()=>{const p=pal(w);const g=miniPlot(cv,p,OPT.m,OPT.b,{v0:-200,v1:750,r:2.4});if(!g)return;const {ctx}=cv;
+    const x0=1905+116*(-OPT.b/OPT.m);ctx.fillStyle=p.acc2;ctx.globalAlpha=.14;ctx.fillRect(g.X(1905),g.Y(0),g.X(x0)-g.X(1905),g.Y(-200)-g.Y(0));ctx.globalAlpha=1;
+    ctx.font='12px '+css(w,'--f-body');ctx.fillStyle=p.acc2;ctx.fillText('직선이 0보다 작아요 (~'+Math.round(x0)+'년)',g.X(1906),g.Y(-150));
+    ctx.fillStyle=p.ink;ctx.fillText('2018년 최고 → 이후 감소',g.X(1968),g.Y(700))};
+};
+
+/* ================= magazines & reader ================= */
+const MAGS={doppler:{tpl:'tpl-doppler',cls:'m-doppler',title:'소리와 술래잡기하는 법',kicker:'지구과학',cover:'assets/cover-doppler.jpg',sub:'도망치면, 소리는 다르게 들린다',teaser:['술래와 같은 속력이면 정말 안 잡힐까?','806 Hz라는 이상한 숫자의 정체','벽에서 튕겨 온 두 번째 소리','직접 해 보는 프로그램 6개']},
+            gd:{tpl:'tpl-gd',cls:'m-gd',title:'눈을 감고 산을 내려가는 법',kicker:'데이터 과학',cover:'assets/cover-gd.jpg',sub:'경사를 따라 한 걸음씩, 경사 하강법 이야기',teaser:['117개의 점에 가장 잘 맞는 직선','안개 속에서 골짜기 바닥 찾기','보폭이 너무 크면 생기는 일','직접 해 보는 프로그램 8개']}};
+const BUILT={};
+function build(id){if(BUILT[id])return BUILT[id];const M=MAGS[id];const frag=document.getElementById(M.tpl).content.cloneNode(true);
+  const blocks=[...frag.children];const holder=el('div',{class:M.cls});document.getElementById('measure').appendChild(holder);
+  blocks.forEach(b=>{holder.appendChild(b);if(b.dataset.w&&WID[b.dataset.w])WID[b.dataset.w](b);if(b.dataset.fig)b.innerHTML=FIG[b.dataset.fig];if(b.dataset.end){const o=MAGS[b.dataset.end];b.innerHTML=`<span class="note">다 읽었어요!</span><button class="btn primary" data-goto="${b.dataset.end}">다음 잡지 · ${o.title}</button><button class="btn" data-goto="">서가로 돌아가기</button>`;b.querySelectorAll('[data-goto]').forEach(x=>x.onclick=()=>goHome(x.dataset.goto))}});
+  let sec='';blocks.forEach(b=>{if(b.matches('h2.sec')){sec=b.textContent.replace(/^\d+/,'').trim()}b._sec=sec});
+  holder.remove();holder.querySelectorAll('img').forEach(im=>{if(!im.complete)im.addEventListener('load',()=>{if(R.id===id&&R.mode==='book'){clearTimeout(rt);rt=setTimeout(()=>layout(true),80)}},{once:true})});return BUILT[id]={blocks,M}}
+
+const R={id:null,mode:'book',pages:[],spread:0,two:false};
+const reader=$('#reader'),book=$('#book'),slotL=$('#slotL'),slotR=$('#slotR'),spreadEl=$('#spread');
+
+function mkPage(M,cover){const pg=el('div',{class:'page'+(cover?' cover':'')});const h=el('div',{class:'pg-head'});h.innerHTML=`<span>철수세미 · ${M.kicker}</span><span></span>`;const body=el('div',{class:'pg-body'});const f=el('div',{class:'pg-foot'});pg.append(h,body,f);return{el:pg,body,head:h,foot:f}}
+function sizeBook(){const vw=innerWidth,avail=book.clientHeight-48;R.two=vw>=960;
+  let ph,pw;if(R.two){ph=Math.min(860,avail);pw=Math.min(ph*0.72,(vw-130)/2);ph=Math.min(ph,pw/0.62)}else{pw=Math.min(vw-16,560);ph=Math.min(avail-40,pw*1.9)}
+  document.documentElement.style.setProperty('--pw',Math.floor(pw)+'px');document.documentElement.style.setProperty('--ph',Math.floor(ph)+'px');
+  book.classList.toggle('two',R.two);book.classList.toggle('one',!R.two)}
+function paginate(){const {blocks,M}=build(R.id);const meas=$('#measure');meas.className='measure '+M.cls+' '+(R.two?'two':'one');meas.innerHTML='';
+  const wrap=el('div',{class:'slot'});meas.appendChild(wrap);
+  const pages=[];const cov=mkPage(M,true);cov.body.innerHTML=`<img class="cover-img" src="${M.cover}" alt="${M.title} 표지"><div class="cover-txt"><span class="cover-k">철수세미 · ${M.kicker}</span><span class="cover-s">${M.sub}</span><span class="cover-h">이번 호에서는</span><ul class="cover-l">${M.teaser.map(t=>`<li>${t}</li>`).join('')}</ul><span class="cover-i">철수세미 온라인 잡지 · 2026 가을</span></div>`;pages.push(cov);
+  let pg=mkPage(M);wrap.appendChild(pg.el);
+  const over=()=>{const L=pg.body.lastElementChild;if(!L)return false;const br=pg.body.getBoundingClientRect();return L.getBoundingClientRect().bottom-br.top>pg.body.clientHeight-30};
+  for(const b of blocks){pg.body.appendChild(b);
+    if(over()&&pg.body.children.length>1){pg.body.removeChild(b);const carry=[b];const last=pg.body.lastElementChild;if(last&&last.matches('h2.sec')&&pg.body.children.length>1){pg.body.removeChild(last);carry.unshift(last)}
+      pages.push(pg);wrap.removeChild(pg.el);pg=mkPage(M);wrap.appendChild(pg.el);carry.forEach(c=>pg.body.appendChild(c));}
+    if(over()&&pg.body.children.length===1)pg.body.classList.add('tall')}
+  pages.push(pg);wrap.removeChild(pg.el);
+  pages.forEach((p,i)=>{if(i){p.foot.textContent=i;const first=[...p.body.children].find(x=>x._sec!==undefined);p.head.lastChild.textContent=first?first._sec:''}});
+  meas.innerHTML='';R.pages=pages;}
+function spreadPages(s){if(!R.two)return[null,R.pages[s]];return[s===0?null:R.pages[2*s-1],R.pages[2*s]||null]}
+function maxSpread(){return R.two?Math.ceil(R.pages.length/2):R.pages.length-1}
+function show(s){R.spread=Math.max(0,Math.min(maxSpread(),s));const [l,r]=spreadPages(R.spread);slotL.innerHTML='';slotR.innerHTML='';
+  if(l)slotL.appendChild(l.el);if(r)slotR.appendChild(r.el);[l,r].forEach(p=>{if(p&&!p.el.classList.contains('cover'))p.body.classList.toggle('tall',p.body.scrollHeight>p.body.clientHeight+2)});slotL.classList.toggle('empty',!l);slotR.classList.toggle('empty',!r);
+  requestAnimationFrame(()=>CANV.forEach(st=>{if(st.draw&&st.w&&visible(st.c))st.draw()}));
+  $('#prev').disabled=R.spread===0;$('#next').disabled=R.spread>=maxSpread();
+  const pr=$('#pageRange');pr.max=maxSpread();pr.value=R.spread;
+  const idx=R.two?[2*R.spread-1,2*R.spread].filter(i=>i>0&&i<R.pages.length):[R.spread].filter(i=>i>0);
+  $('#pageLbl').textContent=(idx.length?idx.join('–'):'표지')+' / '+(R.pages.length-1);buildToc()}
+function anim(node,frames,ms){return node.animate(frames,{duration:ms,easing:'cubic-bezier(.4,.1,.3,1)',fill:'forwards'}).finished}
+let busy=false;
+async function turn(dir){const t=R.spread+dir;if(busy||t<0||t>maxSpread())return;if(reduced){show(t);return}busy=true;
+  try{
+  const [ol,or]=spreadPages(R.spread),[nl,nr]=spreadPages(t);
+  const mkLeaf=(page,side)=>{const lf=el('div',{class:'leaf '+side});lf.style.left=side==='l'?'0':'var(--pw)';if(!R.two)lf.style.left='0';lf.appendChild(page.el);spreadEl.appendChild(lf);return lf};
+  if(R.two){
+    if(dir>0){ if(or){const lf=mkLeaf(or,'r');slotR.innerHTML='';if(nr)slotR.appendChild(nr.el);slotR.classList.toggle('empty',!nr);
+        await anim(lf,[{transform:'rotateY(0)',transformOrigin:'left center'},{transform:'rotateY(-90deg)',transformOrigin:'left center'}],260);lf.remove()}
+      if(nl){const lf=mkLeaf(nl,'l');await anim(lf,[{transform:'rotateY(90deg)',transformOrigin:'right center'},{transform:'rotateY(0)',transformOrigin:'right center'}],260);lf.remove()}}
+    else{ if(ol){const lf=mkLeaf(ol,'l');slotL.innerHTML='';if(nl)slotL.appendChild(nl.el);slotL.classList.toggle('empty',!nl);
+        await anim(lf,[{transform:'rotateY(0)',transformOrigin:'right center'},{transform:'rotateY(90deg)',transformOrigin:'right center'}],260);lf.remove()}
+      if(nr){const lf=mkLeaf(nr,'r');await anim(lf,[{transform:'rotateY(-90deg)',transformOrigin:'left center'},{transform:'rotateY(0)',transformOrigin:'left center'}],260);lf.remove()}}
+  }else{
+    if(dir>0){const lf=mkLeaf(or,'r');slotR.innerHTML='';slotR.appendChild(nr.el);await anim(lf,[{transform:'rotateY(0)',transformOrigin:'left center',opacity:1},{transform:'rotateY(-100deg)',transformOrigin:'left center',opacity:.6}],380);lf.remove()}
+    else{const lf=mkLeaf(nr,'r');await anim(lf,[{transform:'rotateY(-100deg)',transformOrigin:'left center',opacity:.6},{transform:'rotateY(0)',transformOrigin:'left center',opacity:1}],380);lf.remove()}
+  }}finally{busy=false;spreadEl.querySelectorAll('.leaf').forEach(x=>x.remove());show(t)}}
+function pageOf(node){return R.pages.findIndex(p=>p.body.contains(node))}
+function gotoNode(node){if(R.mode==='book'){const i=pageOf(node);if(i<0)return;show(R.two?Math.ceil(i/2):i)}else{node.scrollIntoView({behavior:reduced?'auto':'smooth',block:'start'})}closeToc()}
+function currentAnchor(){if(R.mode==='book'){const [l,r]=spreadPages(R.spread);const p=l||r;return p&&p.body.firstElementChild}
+  const bl=BUILT[R.id].blocks;const y=$('.bar').getBoundingClientRect().bottom+10;return bl.find(b=>b.getBoundingClientRect().bottom>y)}
+
+function layout(keep){const anchor=keep?currentAnchor():null;const {blocks,M}=build(R.id);
+  reader.className=M.cls;$('#nowTitle').textContent=M.kicker+' · '+M.title;
+  if(R.mode==='book'){$('#scroll').hidden=true;book.hidden=false;sizeBook();paginate();
+    let s=0;if(anchor){const i=pageOf(anchor);if(i>0)s=R.two?Math.ceil(i/2):i}show(s)}
+  else{book.hidden=true;$('#scroll').hidden=false;slotL.innerHTML='';slotR.innerHTML='';const art=$('#article');art.innerHTML='';
+    $('#scrollHero').src=M.cover;$('#scrollHero').alt=M.title+' 표지';blocks.forEach(b=>art.appendChild(b));
+    if(anchor&&anchor!==blocks[0])requestAnimationFrame(()=>anchor.scrollIntoView({block:'start'}));else scrollTo(0,0);buildToc()}
+  $('#mBook').setAttribute('aria-pressed',R.mode==='book');$('#mScroll').setAttribute('aria-pressed',R.mode==='scroll')}
+
+function buildToc(){const nav=$('#tocNav');nav.innerHTML='';{const h=el('button',{class:'it'},'<span>← 서가(처음 화면)로</span>');h.onclick=()=>goHome('');nav.appendChild(h)}
+  for(const id of Object.keys(MAGS)){const M=MAGS[id];const g=el('div',{class:'mg '+M.cls});const t=el('button',{class:'mg-t'},M.title);t.onclick=()=>{location.hash=id;closeToc()};g.appendChild(t);
+    if(id===R.id){const {blocks}=build(id);blocks.forEach(b=>{if(b.matches('h2.sec')||b.dataset.w){const isW=!!b.dataset.w;const pn=R.mode==='book'?pageOf(b):-1;
+      const it=el('button',{class:'it'+(isW?' w-it':'')},`<span>${isW?'▸ '+b.dataset.name:b.textContent.replace(/^(\d+)/,'$1 ')}</span><span class="pn">${pn>0?pn+'쪽':''}</span>`);it.onclick=()=>gotoNode(b);g.appendChild(it)}})}
+    nav.appendChild(g)}}
+function openToc(){$('#toc').classList.add('open');$('#scrim').classList.add('on')}
+function closeToc(){$('#toc').classList.remove('open');$('#scrim').classList.remove('on')}
+
+function route(){const id=location.hash.slice(1);if(MAGS[id]){$('#home').hidden=true;reader.hidden=false;$('#tocBtn').hidden=false;$('#modeSeg').hidden=false;$('#homeBtn').hidden=false;document.body.classList.add('reading');R.id=id;layout(false);window.scrollTo(0,0)}
+  else{reader.hidden=true;$('#home').hidden=false;$('#tocBtn').hidden=true;$('#modeSeg').hidden=true;$('#homeBtn').hidden=true;document.body.classList.remove('reading');$('#nowTitle').textContent='';R.id=null}}
+
+R.mode=store.get('mag-mode2')||'scroll';
+document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{location.hash=b.dataset.open});
+function goHome(id){closeToc();if(id){location.hash=id}else{history.pushState('', '', location.pathname);route()}window.scrollTo(0,0)}
+$('#toHome').onclick=()=>goHome('');$('#homeBtn').onclick=()=>goHome('');
+$('#mBook').onclick=()=>{if(R.mode!=='book'){R.mode='book';store.set('mag-mode2','book');layout(true)}};
+$('#mScroll').onclick=()=>{if(R.mode!=='scroll'){R.mode='scroll';store.set('mag-mode2','scroll');layout(true)}};
+$('#tocBtn').onclick=openToc;$('#tocX').onclick=closeToc;$('#scrim').onclick=closeToc;
+$('#prev').onclick=()=>turn(-1);$('#next').onclick=()=>turn(1);
+$('#pageRange').oninput=e=>show(+e.target.value);
+addEventListener('keydown',e=>{if(R.mode!=='book'||reader.hidden)return;if(/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))return;if(e.key==='ArrowRight')turn(1);if(e.key==='ArrowLeft')turn(-1);if(e.key==='Escape')closeToc()});
+let sw=null;book.addEventListener('pointerdown',e=>{if(e.target.closest('.w,input,button,details,audio'))return;sw={x:e.clientX,y:e.clientY}});
+book.addEventListener('pointerup',e=>{if(!sw)return;const dx=e.clientX-sw.x,dy=e.clientY-sw.y;sw=null;if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.3)turn(dx<0?1:-1)});
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{if(R.id&&R.mode==='book')layout(true)},200)});
+addEventListener('hashchange',route);
+document.fonts&&document.fonts.ready.then(()=>{if(R.id&&R.mode==='book')layout(true)});
+route();
+</script>
+
+</body>
+</html>
